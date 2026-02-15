@@ -16,39 +16,39 @@ from core.simulation_engine import (
 # Strategy search configurations
 STRATEGY_CONFIG = {
     "trump_posts": {
-        "queries": ["trump-truth-social", "trump-post", "trump posts"],
+        "queries": ["truth social", "donald trump # truth"],
         "xtracker_user": "realDonaldTrump",
         "category": "social_media",
     },
     "mrbeast_views": {
-        "queries": ["mrbeast", "mr-beast", "youtube-view", "mrbeast views"],
+        "queries": ["mrbeast", "mr beast"],
         "xtracker_user": None,
         "category": "youtube",
     },
     "kaito_ai": {
-        "queries": ["kaito", "attention", "mindshare"],
+        "queries": ["kaito", "mindshare"],
         "xtracker_user": None,
         "category": "kaito",
     },
     "temperature": {
-        "queries": ["highest-temperature", "temperature", "daily temperature"],
+        "queries": ["highest temperature"],
         "xtracker_user": None,
         "category": "temperature",
         "cities": ["nyc", "london", "chicago", "seoul", "miami", "atlanta",
                     "toronto", "dallas", "paris", "seattle"],
     },
     "tate_posts": {
-        "queries": ["andrew-tate", "tate-post", "tate posts"],
+        "queries": ["andrew tate", "tate # posts"],
         "xtracker_user": "Cobratate",
         "category": "social_media",
     },
     "box_office": {
-        "queries": ["box-office", "opening-weekend", "box office"],
+        "queries": ["box office", "opening weekend"],
         "xtracker_user": None,
         "category": "box_office",
     },
     "musk_tweets": {
-        "queries": ["elon-musk", "musk-tweet", "musk tweets", "musk post"],
+        "queries": ["musk # tweets", "musk tweets"],
         "xtracker_user": "elonmusk",
         "category": "social_media",
     },
@@ -58,14 +58,16 @@ STRATEGY_CONFIG = {
 def discover_events(strategy_name: str) -> list[dict]:
     """
     Search for active bracket events matching strategy keywords.
-    Returns list of enriched event dicts.
+    Only returns events with 3+ markets (bracket-type).
     """
     config = STRATEGY_CONFIG.get(strategy_name)
     if not config:
         return []
 
     events = api_client.search_events_broad(config["queries"])
-    return events
+    # Filter to bracket events only (3+ markets = multi-bracket)
+    bracket_events = [e for e in events if len(e.get("markets", [])) >= 3]
+    return bracket_events
 
 
 def analyze_event_brackets(event: dict) -> dict:

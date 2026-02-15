@@ -16,7 +16,12 @@ SESSION.headers.update({"Accept": "application/json"})
 
 # Simple rate limiting
 _last_request_time = 0.0
-_MIN_INTERVAL = 0.25  # 250ms between requests
+_MIN_INTERVAL = 0.15  # 150ms between requests
+
+# Event cache: the Gamma API has no search — must paginate all 6000+ events
+_events_cache: list[dict] = []
+_events_cache_time: float = 0.0
+_EVENTS_CACHE_TTL = 300  # 5 minutes
 
 
 def _rate_limit():
@@ -43,22 +48,42 @@ def _get(url: str, params: dict = None, timeout: int = 15) -> Optional[dict | li
 # Gamma API — market/event metadata and resolution status
 # ---------------------------------------------------------------------------
 
-def search_events(query: str, active: bool = True, limit: int = 50) -> list[dict]:
-    """Search for events by keyword. Returns list of event dicts."""
-    params = {
-        "limit": limit,
-        "active": str(active).lower(),
-        "closed": "false",
-        "order": "volume24hr",
-        "ascending": "false",
-    }
-    # Gamma search uses the /events endpoint with a slug filter
-    data = _get(f"{GAMMA_BASE}/events", params=params)
-    if not data:
-        return []
-    # Filter by query keyword in title or slug
+def _fetch_all_active_events() -> list[dict]:
+    """
+    Paginate through ALL active events from Gamma API.
+    The API does NOT support keyword search — all filtering is client-side.
+    Results cached for 5 minutes to avoid hammering the API.
+    """
+    global _events_cache, _events_cache_time
+    now = time.time()
+    if _events_cache and (now - _events_cache_time) < _EVENTS_CACHE_TTL:
+        return _events_cache
+
+    all_events = []
+    offset = 0
+    batch_size = 100
+    while True:
+        data = _get(f"{GAMMA_BASE}/events", params={
+            "limit": batch_size, "offset": offset, "active": "true", "closed": "false"
+        }, timeout=30)
+        if not data:
+            break
+        all_events.extend(data)
+        offset += len(data)
+        if len(data) < batch_size:
+            break
+
+    _events_cache = all_events
+    _events_cache_time = time.time()
+    print(f"[API] Cached {len(all_events)} active events from Gamma API")
+    return all_events
+
+
+def search_events(query: str, active: bool = True) -> list[dict]:
+    """Search events by keyword (client-side filter over all active events)."""
+    all_events = _fetch_all_active_events()
     query_lower = query.lower()
-    return [e for e in data if query_lower in e.get("title", "").lower()
+    return [e for e in all_events if query_lower in e.get("title", "").lower()
             or query_lower in e.get("slug", "").lower()]
 
 
