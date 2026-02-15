@@ -1,0 +1,319 @@
+"""
+Strategy analysis content for expandable sections on each page.
+Drawn from ANNICA_STRATEGY_ANALYSIS.md section 12.
+"""
+
+STRATEGY_CONTENT = {
+    "trump_posts": """
+### Trump Truth Social Posts — Strategy Analysis
+
+**Market Structure:**
+- Brackets: ~8 outcomes (e.g., 60-79, 80-99, 100-119, ... 200+)
+- Frequency: Weekly
+- Volume: ~$193K/week
+- Liquidity: ~$52.8K
+- Data source: xtracker.polymarket.com tracking @realDonaldTrump
+
+**Edge Assessment: MODERATE-HIGH**
+
+Much less competition than Musk tweet markets, identical NegRisk bracket structure.
+Trump's posting cadence is more erratic than Musk's, creating higher variance but also
+cheaper tail brackets when uncertainty is high.
+
+**Entry Rules:**
+- Only enter when total bracket cost < $0.40 (sum of all YES prices)
+- Buy 6-8 brackets covering the plausible range at 1-5 cents each
+- Use limit-order simulation (walk asks) with 10% depth cap
+- Minimum volume > $1,000 per bracket
+
+**Exit Rules:**
+- Take profit: Sell when bracket bid > $0.30
+- Hold to resolution if bracket is in winning range
+- WON = $1.00/share, LOST = $0.00/share
+
+**Risk Factors:**
+- Trump's posting is more erratic → harder to forecast
+- Lower liquidity means larger spreads and harder fills
+- Political events can cause sudden posting binges or silences
+- Fewer brackets means less spread coverage
+
+**Data Sources:**
+- XTracker: Real-time post count from @realDonaldTrump
+- Gamma API: Market prices and resolution status
+- CLOB API: Live orderbook for fill simulation
+""",
+
+    "mrbeast_views": """
+### MrBeast YouTube Views — Strategy Analysis
+
+**Market Structure:**
+- Brackets: Multiple ranges for Day 1, Day 6, Week 1 views per video
+- Frequency: Per-video (irregular, ~2-4x per month)
+- Active markets: ~9 at any time
+- Data source: YouTube view counts (public, near-real-time)
+
+**Edge Assessment: HIGH**
+
+Newer market category with less quant attention. YouTube view counts are publicly
+trackable in near-real-time, providing an information advantage similar to XTracker
+for tweet counts. View velocity in the first hours after upload is highly predictive.
+
+**Entry Rules:**
+- Only enter when total bracket cost < $0.40
+- Focus on Day 1 and Day 6 view count brackets
+- Buy brackets spanning the likely view range based on recent video performance
+- Check YT view velocity before entering
+
+**Exit Rules:**
+- Take profit at bid > $0.30 or when view trajectory is clear
+- Hold to resolution for brackets in the winning range
+
+**Risk Factors:**
+- Irregular timing depends on MrBeast's upload schedule
+- Lower liquidity on some brackets
+- Viral videos can exceed all bracket ranges
+- Algorithm changes can affect view counts unpredictably
+
+**Data Sources:**
+- YouTube: Public view count (real-time tracking via page)
+- Gamma API: Market prices and resolution
+- CLOB API: Orderbook data
+""",
+
+    "kaito_ai": """
+### Kaito AI Attention Markets — Strategy Analysis
+
+**LAUNCHING MARCH 2026**
+
+**Market Structure (Expected):**
+- Markets on social media mindshare and sentiment
+- Resolution via Kaito AI-computed metrics
+- Data sources: X, TikTok, Instagram, YouTube
+- Verification: Zero-knowledge proofs via Brevis, EigenCloud auditing
+
+**Edge Assessment: POTENTIALLY HIGHEST**
+
+Brand new market category launching in early March 2026. No established bot
+infrastructure, unfamiliar resolution metric, first-mover opportunity.
+
+**Strategy:**
+- Be first mover — evaluate bracket structure immediately at launch
+- Look for mispriced brackets where Kaito AI metric behavior is poorly understood
+- The same multi-bracket spread applies if NegRisk structure is used
+
+**Risk Factors:**
+- Opaque AI model — resolution mechanics uncertain until launch
+- Unknown bracket structure
+- May attract sophisticated AI/ML traders quickly
+- Kaito metric could be manipulable
+
+**Action:**
+- Monitor for launch in early March 2026
+- Auto-poll Gamma API for new Kaito-related markets
+- Paper trade immediately when brackets appear
+""",
+
+    "temperature": """
+### Daily City Temperature — Strategy Analysis
+
+**Market Structure:**
+- Brackets: ~7-8 temperature ranges per city per day (e.g., ≤31F, 32-33F, 34-35F, ... ≥42F)
+- Frequency: **DAILY** — new markets every single day for 10+ cities
+- Cities: NYC, London, Chicago, Seoul, Miami, Atlanta, Toronto, Dallas, Paris, Seattle
+- Combined daily volume: $2.8M+ across all cities
+- Individual city volume: $62K-$458K/day
+- Data source: Weather Underground (airport station data)
+
+**Edge Assessment: MODERATE**
+
+NegRisk netting on Polymarket makes the "buy all brackets" approach viable (unlike Kalshi
+where spreads always sum >$1.00). Best during high-uncertainty weather patterns.
+
+**Entry Rules:**
+- Only enter when total bracket cost < $0.40
+- Target high-uncertainty days (cold fronts, storms, transitional seasons)
+- Focus on cities with widest temperature uncertainty in forecasts
+- Buy brackets near forecast edges where models disagree
+
+**Exit Rules:**
+- Same-day resolution — hold to expiry or sell when temperature trend is clear
+- Take profit if a bracket reaches $0.30+ mid-day
+
+**Risk Factors:**
+- Bot competition exists (open-source weather bots on GitHub)
+- Same-day resolution means fast-moving prices
+- Weather models are well-calibrated on average
+- Some cities more efficient than others
+
+**Data Sources:**
+- Weather Underground: Real-time airport station data
+- NWS: National Weather Service forecasts
+- Open-Meteo: Free weather API
+- Gamma API: Market prices
+""",
+
+    "tate_posts": """
+### Andrew Tate Posts — Strategy Analysis
+
+**Market Structure:**
+- Brackets: **22 outcomes** (most of any post-count market: <100, 100-129, 130-159, ... 700+)
+- Frequency: Weekly
+- Volume: ~$53.7K/week
+- Liquidity: ~$71K
+- Data source: xtracker.polymarket.com tracking @Cobratate on X
+
+**Edge Assessment: HIGH**
+
+Very low competition compared to Musk tweets. The 22-bracket structure provides
+extensive spread coverage, and tail bracket prices are ultra-cheap (0.3-0.8 cents).
+Tate's posting behavior is somewhat predictable (prolific poster, 200-400+ per week).
+
+**Entry Rules:**
+- Only enter when total bracket cost < $0.40 (with 22 brackets, likely achievable)
+- Buy 15-20 brackets covering the full range at 0.3-2 cents each
+- Total cost target: $0.15-$0.25 per complete set
+
+**Exit Rules:**
+- Take profit at bid > $0.30
+- With 22 brackets, expect 18-20 to expire worthless
+- The 2-3 winners should pay for all losses plus profit
+
+**Risk Factors:**
+- Low volume means harder to fill large orders
+- Tate could get suspended/banned → market disruption
+- XTracker count methodology may differ from resolution
+- Platform risk (X account status)
+
+**Data Sources:**
+- XTracker: Real-time post count from @Cobratate
+- Gamma API: Market prices and resolution
+- CLOB API: Orderbook data
+""",
+
+    "box_office": """
+### Box Office Opening Weekend — Strategy Analysis
+
+**Market Structure:**
+- Brackets: 4-5 revenue ranges per movie (e.g., <$14M, $14-17M, $17-20M, $20-23M, >$23M)
+- Frequency: Every 1-2 weeks (new movie releases)
+- Volume: $60-$333K per movie
+- Liquidity: $52-$128K
+- Data source: The Numbers (opening weekend domestic box office)
+
+**Edge Assessment: MODERATE**
+
+Less quant attention than crypto/weather markets. Partial real-time tracking is
+possible via Friday/Saturday box office estimates (BoxOfficeMojo, The Numbers).
+Opening day numbers typically become available Saturday morning.
+
+**Entry Rules:**
+- Only enter when total bracket cost < $0.40
+- Focus on high-profile releases with wider bracket ranges
+- Buy brackets based on tracking/presale data + comparable movies
+- Enter before Thursday night previews
+
+**Exit Rules:**
+- Friday evening: Re-evaluate based on Thursday preview numbers
+- Saturday: Sell/hold based on Friday actuals
+- Sunday resolution: Hold winning bracket to expiry
+
+**Risk Factors:**
+- Only 4-5 brackets limits the spread coverage
+- Fewer movies = less frequent trading
+- Preview numbers can be misleading
+- Weather and competing releases affect box office unpredictably
+
+**Data Sources:**
+- The Numbers: Official box office data
+- BoxOfficeMojo: Real-time estimates
+- Gamma API: Market prices
+""",
+
+    "musk_tweets": """
+### Elon Musk Tweets — Strategy Analysis (Baseline)
+
+**Market Structure:**
+- Brackets: ~12-22 outcomes per market (20-tweet-wide ranges)
+- Frequency: Weekly (3-day + 7-day windows run simultaneously)
+- Volume: ~$14.8M/week
+- Liquidity: ~$862K
+- Data source: xtracker.polymarket.com/user/elonmusk
+
+**Edge Assessment: DECLINING**
+
+This is the original Annica strategy. The edge has compressed significantly as of
+Feb 2026 due to media coverage and copycat traders. Bracket costs now sum to $0.80-$0.95
+on many markets, leaving only 5-20% theoretical edge.
+
+**Entry Rules:**
+- Only enter when total bracket cost < $0.40 (becoming rare)
+- Buy 8-15 brackets covering plausible tweet-count range
+- Target 7-day markets for more time and data
+
+**Exit Rules:**
+- Sell at bid > $0.30 mid-week as tweet count narrows range
+- Hold winning bracket to resolution
+- Merge opportunities: buy cheap NO + merge with YES for $1.00
+
+**Risk Factors:**
+- Heavy competition from other traders running same strategy
+- Musk's posting behavior is volatile (binges, quiet periods)
+- Edge may be fully eroded — monitor bracket costs carefully
+- Consider rotating capital to Tier 1 strategies
+
+**Why Tier 2:**
+Demoted from primary strategy due to edge compression. Continue monitoring at reduced
+size while validating Tier 1 alternatives.
+
+**Data Sources:**
+- XTracker: Real-time tweet count
+- Gamma API: Market prices and resolution
+- CLOB API: Orderbook data
+""",
+}
+
+# Full strategy overview for the home page
+OVERVIEW_CONTENT = """
+## Brackets Arbitrage Bot — Strategy Overview
+
+### The Core Strategy: Multi-Bracket Spread
+
+This bot paper trades the **Annica bracket spread strategy** across 7 Polymarket markets.
+The strategy exploits a structural mispricing in multi-bracket NegRisk markets:
+
+1. **Structure**: Markets have 5-30+ mutually exclusive brackets. Exactly ONE resolves YES ($1.00).
+2. **Entry**: Buy YES on many brackets at 1-5 cents each. Total cost should be well under $1.00.
+3. **Edge**: Since one bracket MUST win ($1.00 payout), and total cost < $1.00, the spread is guaranteed profit.
+4. **Active Management**: Sell appreciating brackets mid-period at 30-60 cents for early profit.
+
+### Market Suitability Criteria
+
+A market qualifies for this strategy when:
+- Multi-bracket NegRisk structure (mutually exclusive outcomes)
+- Quantitative/countable resolution (objective, not subjective)
+- Real-time data source for mid-period tracking
+- Recurring (weekly or more frequent)
+- Cheap tail brackets available (total spread < $0.40)
+
+### Tier 1 — Highest Expected Edge
+| # | Market | Why |
+|---|--------|-----|
+| 1 | Trump Truth Social Posts | Same structure as Musk, much less competition |
+| 2 | MrBeast YouTube Views | Newer category, less quant attention, real-time data |
+| 3 | Kaito AI Attention | Brand new March 2026, first-mover opportunity |
+
+### Tier 2 — Moderate Edge
+| # | Market | Why |
+|---|--------|-----|
+| 4 | Daily Temperature | NegRisk netting works, daily frequency, 10+ cities |
+| 5 | Andrew Tate Posts | 22 brackets, ultra-low competition |
+| 6 | Box Office Weekends | NegRisk, partial real-time tracking |
+| 7 | Elon Musk Tweets | Original strategy, declining edge |
+
+### Simulation Parameters
+- **Starting capital**: $1,000 per strategy ($7,000 total)
+- **Bet size**: 1% of equity (~$10 per trade)
+- **Entry threshold**: Total bracket cost < $0.40
+- **Take profit**: Bid > $0.30
+- **Volume filter**: > $1,000 per bracket
+"""
