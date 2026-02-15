@@ -132,3 +132,14 @@ if st.button("Check API Connectivity"):
                 st.error(f"{name.upper()}: {error}")
 else:
     st.caption("Click to verify Gamma API, CLOB API, and XTracker connectivity.")
+
+# --- Auto-refresh every 5 minutes ---
+import streamlit.components.v1 as components
+components.html(
+    """<script>
+        setTimeout(function() {
+            window.parent.postMessage({type: 'streamlit:rerun'}, '*');
+        }, 300000);
+    </script>""",
+    height=0,
+)

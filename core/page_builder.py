@@ -14,10 +14,24 @@ from core.state_manager import StrategyState, PaperTrade
 from core.capital_manager import CapitalManager
 from core.market_discovery import (
     discover_events, analyze_event_brackets, fetch_bracket_orderbooks,
-    get_strategy_xtracker, STRATEGY_CONFIG,
+    STRATEGY_CONFIG,
 )
+from core.api_client import get_xtracker_user, get_active_trackings, get_window_post_count
 from core.simulation_engine import simulate_buy
 from core.strategy_content import STRATEGY_CONTENT
+
+AUTO_SCAN_INTERVAL = 300  # 5 minutes in seconds
+
+
+def _should_auto_scan(strategy_name: str) -> bool:
+    """Check if enough time has passed since last scan for auto-scan."""
+    last_key = f"{strategy_name}_last_auto_scan"
+    last_scan = st.session_state.get(last_key, 0)
+    now = time.time()
+    if now - last_scan >= AUTO_SCAN_INTERVAL:
+        st.session_state[last_key] = now
+        return True
+    return False
 
 
 def render_strategy_page(
@@ -41,6 +55,10 @@ def render_strategy_page(
     state = StrategyState(strategy_name)
     capital = CapitalManager(state)
 
+    # --- Auto-scan: trigger scan every 5 minutes ---
+    if _should_auto_scan(strategy_name):
+        st.session_state[f"{strategy_name}_scan"] = True
+
     # --- Sidebar ---
     with st.sidebar:
         tier_color = ":green" if tier == 1 else ":orange"
@@ -50,11 +68,17 @@ def render_strategy_page(
 
         if st.button("Scan Markets", key="scan_btn", use_container_width=True):
             st.session_state[f"{strategy_name}_scan"] = True
+            st.session_state[f"{strategy_name}_last_auto_scan"] = time.time()
 
-        auto_refresh = st.toggle("Auto-refresh (60s)", key=f"{strategy_name}_auto")
-        if auto_refresh:
-            time.sleep(0.1)  # Small delay to prevent immediate rerun
-            st.rerun()  # Will rerun after page renders
+        st.caption("Auto-scan: every 5 minutes")
+
+        # Show time until next auto-scan
+        last_scan = st.session_state.get(f"{strategy_name}_last_auto_scan", 0)
+        if last_scan > 0:
+            next_scan_in = max(0, AUTO_SCAN_INTERVAL - (time.time() - last_scan))
+            mins = int(next_scan_in // 60)
+            secs = int(next_scan_in % 60)
+            st.caption(f"Next scan in: {mins}m {secs}s")
 
         st.divider()
         if st.button("Reset Simulation", key="reset_btn", type="secondary", use_container_width=True):
@@ -91,7 +115,6 @@ def render_strategy_page(
     with col2:
         st.metric("Invested", f"${metrics['invested']:,.2f}")
     with col3:
-        color = "normal" if metrics["unrealized_pnl"] == 0 else ("off" if metrics["unrealized_pnl"] < 0 else "normal")
         st.metric("Unrealized P&L", f"${metrics['unrealized_pnl']:,.2f}")
     with col4:
         st.metric("Realized P&L", f"${metrics['realized_pnl']:,.2f}")
@@ -111,7 +134,9 @@ def render_strategy_page(
     else:
         # Show cached events
         if state.events_tracked:
-            st.info(f"Tracking {len(state.events_tracked)} events. Click **Scan Markets** to refresh.")
+            last_ts = state.last_updated
+            last_str = datetime.fromtimestamp(last_ts).strftime("%H:%M:%S") if last_ts else "Never"
+            st.info(f"Tracking {len(state.events_tracked)} events. Last scan: {last_str}. Auto-scan every 5 min.")
             for eid, meta in state.events_tracked.items():
                 with st.container(border=True):
                     cols = st.columns([3, 1, 1, 1, 1])
@@ -126,7 +151,7 @@ def render_strategy_page(
                     else:
                         cols[4].error("NO EDGE")
         else:
-            st.info("No markets scanned yet. Click **Scan Markets** in the sidebar.")
+            st.info("No markets scanned yet. First auto-scan will run shortly.")
 
     st.divider()
 
@@ -178,6 +203,44 @@ def render_strategy_page(
 
     # Record performance snapshot
     state.record_performance(unrealized_pnl=metrics["unrealized_pnl"])
+
+    # --- Auto-refresh via st.rerun with fragment ---
+    # Use Streamlit's built-in auto-rerun to trigger every 5 minutes
+    _schedule_auto_rerun(strategy_name)
+
+
+def _schedule_auto_rerun(strategy_name: str):
+    """Schedule the next auto-rerun at the 5-minute mark."""
+    last_scan = st.session_state.get(f"{strategy_name}_last_auto_scan", 0)
+    if last_scan > 0:
+        next_scan_in = AUTO_SCAN_INTERVAL - (time.time() - last_scan)
+        if next_scan_in <= 0:
+            # Time to scan again
+            st.rerun()
+        else:
+            # Use st.empty placeholder to trigger rerun at the right time
+            # Streamlit's auto_refresh will handle this
+            import streamlit.components.v1 as components
+            components.html(
+                f"""<script>
+                    setTimeout(function() {{
+                        window.parent.postMessage({{type: 'streamlit:rerun'}}, '*');
+                    }}, {int(next_scan_in * 1000)});
+                </script>""",
+                height=0,
+            )
+    else:
+        # First load — trigger initial scan after 5 seconds
+        st.session_state[f"{strategy_name}_last_auto_scan"] = time.time()
+        import streamlit.components.v1 as components
+        components.html(
+            """<script>
+                setTimeout(function() {
+                    window.parent.postMessage({type: 'streamlit:rerun'}, '*');
+                }, 5000);
+            </script>""",
+            height=0,
+        )
 
 
 def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital: CapitalManager):
@@ -317,17 +380,43 @@ def social_media_widgets(username: str, display_name: str):
     """Factory for social media strategy extra widgets (XTracker counter)."""
     def _widgets(state, capital):
         st.subheader(f"Live Post Counter — {display_name}")
-        data = get_strategy_xtracker(state.strategy_name)
+        data = get_xtracker_user(username)
         if data:
-            col1, col2 = st.columns(2)
+            total_posts = data.get("_count", {}).get("posts", "N/A")
+            last_sync = data.get("lastSync", "")
+            trackings = data.get("trackings", [])
+            active = [t for t in trackings if t.get("isActive")]
+
+            col1, col2, col3 = st.columns(3)
             with col1:
-                count = data.get("count", data.get("postCount", "N/A"))
-                st.metric("Current Count", count)
+                st.metric("Total Posts (All Time)", f"{total_posts:,}" if isinstance(total_posts, int) else total_posts)
             with col2:
-                period = data.get("period", data.get("timeframe", ""))
-                st.caption(f"Tracking: @{username} | Period: {period}")
+                st.metric("Active Tracking Windows", len(active))
+            with col3:
+                if last_sync:
+                    try:
+                        sync_dt = datetime.fromisoformat(last_sync.replace("Z", "+00:00"))
+                        st.caption(f"Last sync: {sync_dt.strftime('%m/%d %H:%M:%S UTC')}")
+                    except ValueError:
+                        st.caption(f"Last sync: {last_sync}")
+
+            # Show active tracking windows with post counts
+            if active:
+                for tracking in active:
+                    title = tracking.get("title", "Unknown window")
+                    start = tracking.get("startDate", "")
+                    end = tracking.get("endDate", "")
+                    with st.container(border=True):
+                        tcol1, tcol2 = st.columns([3, 1])
+                        tcol1.write(f"**{title}**")
+                        if start and end:
+                            window_count = get_window_post_count(username, start, end)
+                            if window_count is not None:
+                                tcol2.metric("Posts in Window", window_count)
+                            else:
+                                tcol2.write("Count unavailable")
         else:
-            st.info(f"XTracker data not available for @{username}. Check connectivity.")
+            st.warning(f"XTracker data not available for @{username}. API may be temporarily down.")
         st.divider()
     return _widgets
 

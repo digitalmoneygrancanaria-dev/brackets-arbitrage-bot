@@ -172,22 +172,71 @@ def get_clob_market(condition_id: str) -> Optional[dict]:
 
 # ---------------------------------------------------------------------------
 # XTracker — real-time social media post counts
+# Actual API: /api/users (all users) and /api/users/{handle} (single user)
+# /api/users/{handle}/posts?startDate=...&endDate=... (posts in window)
 # ---------------------------------------------------------------------------
+
+def get_xtracker_users() -> Optional[list[dict]]:
+    """Get all tracked users with post counts and active tracking windows."""
+    data = _get(f"{XTRACKER_BASE}/api/users")
+    if data and data.get("success") and "data" in data:
+        return data["data"]
+    return None
+
 
 def get_xtracker_user(username: str) -> Optional[dict]:
     """
-    Get real-time post count for a tracked user.
-    Known tracked users: elonmusk, realDonaldTrump, Cobratate
+    Get a single tracked user's data by handle.
+    Known tracked users: elonmusk, realDonaldTrump, Cobratate, WhiteHouse
+
+    Returns dict with: handle, name, trackings[], _count.posts, lastSync, etc.
     """
-    data = _get(f"{XTRACKER_BASE}/user/{username}")
-    return data
+    data = _get(f"{XTRACKER_BASE}/api/users/{username}")
+    if data and data.get("success") and "data" in data:
+        return data["data"]
+    return None
+
+
+def get_xtracker_posts(username: str, start_date: str = None, end_date: str = None) -> Optional[list[dict]]:
+    """
+    Get posts for a user, optionally filtered by date range.
+    Dates should be ISO 8601 format (e.g., '2026-02-13T17:00:00.000Z').
+    """
+    params = {}
+    if start_date:
+        params["startDate"] = start_date
+    if end_date:
+        params["endDate"] = end_date
+    data = _get(f"{XTRACKER_BASE}/api/users/{username}/posts", params=params if params else None)
+    if data and data.get("success") and "data" in data:
+        return data["data"]
+    return None
 
 
 def get_post_count(username: str) -> Optional[int]:
-    """Get the current post count for a user from XTracker."""
+    """Get the total post count for a user from XTracker."""
     data = get_xtracker_user(username)
-    if data and "count" in data:
-        return int(data["count"])
+    if data:
+        count = data.get("_count", {}).get("posts")
+        if count is not None:
+            return int(count)
+    return None
+
+
+def get_active_trackings(username: str) -> list[dict]:
+    """Get active tracking windows for a user (linked to Polymarket markets)."""
+    data = get_xtracker_user(username)
+    if not data:
+        return []
+    trackings = data.get("trackings", [])
+    return [t for t in trackings if t.get("isActive")]
+
+
+def get_window_post_count(username: str, start_date: str, end_date: str) -> Optional[int]:
+    """Get post count for a specific tracking window."""
+    posts = get_xtracker_posts(username, start_date, end_date)
+    if posts is not None:
+        return len(posts)
     return None
 
 
@@ -217,7 +266,7 @@ def check_api_health() -> dict:
 
     # XTracker
     try:
-        resp = SESSION.get(f"{XTRACKER_BASE}/user/elonmusk", timeout=5)
+        resp = SESSION.get(f"{XTRACKER_BASE}/api/users", timeout=5)
         results["xtracker"] = {"status": "ok" if resp.status_code == 200 else "error",
                                "code": resp.status_code}
     except Exception as e:
