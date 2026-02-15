@@ -52,6 +52,16 @@ STRATEGY_CONFIG = {
         "xtracker_user": "elonmusk",
         "category": "social_media",
     },
+    "album_sales": {
+        "queries": ["first week album sales", "first week sales"],
+        "xtracker_user": None,
+        "category": "album_sales",
+    },
+    "gpu_prices": {
+        "queries": ["gpu rental", "h100"],
+        "xtracker_user": None,
+        "category": "gpu_prices",
+    },
 }
 
 
@@ -76,7 +86,7 @@ def analyze_event_brackets(event: dict) -> dict:
     - bracket prices (YES side)
     - total bracket cost
     - theoretical edge
-    - qualifying brackets (price 1-5 cents)
+    - qualifying brackets (price 1-10 cents)
     """
     markets = event.get("markets", [])
     if not markets:
@@ -122,8 +132,8 @@ def analyze_event_brackets(event: dict) -> dict:
     total_cost = compute_bracket_set_cost(prices)
     edge = compute_theoretical_edge(total_cost)
 
-    # Qualifying brackets: price between 1-5 cents
-    qualifying = [b for b in active_brackets if 0.01 <= b["yes_price"] <= 0.05]
+    # Qualifying brackets: price between 1-10 cents
+    qualifying = [b for b in active_brackets if 0.01 <= b["yes_price"] <= 0.10]
 
     return {
         "event": event,

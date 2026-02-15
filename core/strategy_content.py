@@ -21,7 +21,7 @@ Trump's posting cadence is more erratic than Musk's, creating higher variance bu
 cheaper tail brackets when uncertainty is high.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.40 (sum of all YES prices)
+- Only enter when total bracket cost < $0.70 (sum of all YES prices)
 - Buy 6-8 brackets covering the plausible range at 1-5 cents each
 - Use limit-order simulation (walk asks) with 10% depth cap
 - Minimum volume > $1,000 per bracket
@@ -59,7 +59,7 @@ trackable in near-real-time, providing an information advantage similar to XTrac
 for tweet counts. View velocity in the first hours after upload is highly predictive.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.40
+- Only enter when total bracket cost < $0.70
 - Focus on Day 1 and Day 6 view count brackets
 - Buy brackets spanning the likely view range based on recent video performance
 - Check YT view velocity before entering
@@ -130,7 +130,7 @@ NegRisk netting on Polymarket makes the "buy all brackets" approach viable (unli
 where spreads always sum >$1.00). Best during high-uncertainty weather patterns.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.40
+- Only enter when total bracket cost < $0.70
 - Target high-uncertainty days (cold fronts, storms, transitional seasons)
 - Focus on cities with widest temperature uncertainty in forecasts
 - Buy brackets near forecast edges where models disagree
@@ -169,7 +169,7 @@ extensive spread coverage, and tail bracket prices are ultra-cheap (0.3-0.8 cent
 Tate's posting behavior is somewhat predictable (prolific poster, 200-400+ per week).
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.40 (with 22 brackets, likely achievable)
+- Only enter when total bracket cost < $0.70 (with 22 brackets, likely achievable)
 - Buy 15-20 brackets covering the full range at 0.3-2 cents each
 - Total cost target: $0.15-$0.25 per complete set
 
@@ -207,7 +207,7 @@ possible via Friday/Saturday box office estimates (BoxOfficeMojo, The Numbers).
 Opening day numbers typically become available Saturday morning.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.40
+- Only enter when total bracket cost < $0.70
 - Focus on high-profile releases with wider bracket ranges
 - Buy brackets based on tracking/presale data + comparable movies
 - Enter before Thursday night previews
@@ -246,7 +246,7 @@ Feb 2026 due to media coverage and copycat traders. Bracket costs now sum to $0.
 on many markets, leaving only 5-20% theoretical edge.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.40 (becoming rare)
+- Only enter when total bracket cost < $0.70 (becoming rare)
 - Buy 8-15 brackets covering plausible tweet-count range
 - Target 7-day markets for more time and data
 
@@ -270,6 +270,83 @@ size while validating Tier 1 alternatives.
 - Gamma API: Market prices and resolution
 - CLOB API: Orderbook data
 """,
+
+    "album_sales": """
+### First Week Album Sales — Strategy Analysis
+
+**Market Structure:**
+- Brackets: 7-8 sales ranges per album (e.g., <50K, 50-75K, 75-100K, 100-125K, ... 200K+)
+- Frequency: Per major album release (~4-6 per month)
+- Active markets: ~12 at any time
+- Data source: Billboard/Luminate (official), Spotify/Apple Music streaming (real-time proxy)
+
+**Edge Assessment: HIGH**
+
+Newest bracket category with very little quant attention. Music fans trade these markets,
+not algorithmic traders. Streaming velocity in the first 24-48 hours is highly predictive
+of final first-week numbers, giving a real-time data advantage.
+
+**Entry Rules:**
+- Only enter when total bracket cost < $0.70
+- Buy brackets spanning the likely sales range based on pre-release indicators
+- Check Spotify daily chart position and streaming velocity before entering
+- Focus on high-profile releases (BTS, BlackPink, Taylor Swift, Drake, etc.)
+
+**Exit Rules:**
+- Take profit at bid > $0.30 when streaming trajectory clarifies
+- By day 3-4 of release week, the winning bracket is usually clear
+- Hold to resolution for brackets in the winning range
+
+**Risk Factors:**
+- Release dates can shift, affecting market timing
+- Physical sales (vinyl, CD bundles) harder to track real-time vs streaming
+- Different counting methodologies between platforms
+- Lower liquidity on some smaller artist markets
+
+**Real-Time Data Sources:**
+- Spotify Charts: Daily top albums chart + stream counts via kworb.net
+- Apple Music: Daily album chart positions
+- Billboard: Official first-week projections (usually published mid-week)
+- Spotify API: Track play counts (updated ~daily)
+""",
+
+    "gpu_prices": """
+### GPU Rental Prices (H100) — Strategy Analysis
+
+**Market Structure:**
+- Brackets: 11-12 price ranges for monthly H100 rental averages
+- Frequency: Monthly
+- Data source: Cloud GPU marketplace pricing (vast.ai, SF Compute, RunPod)
+
+**Edge Assessment: MODERATE (niche)**
+
+Very few traders understand GPU rental market dynamics. Price movements are driven by
+AI model training demand, new GPU launches, and supply constraints — factors most
+prediction market participants don't track. The market is small but inefficient.
+
+**Entry Rules:**
+- Only enter when total bracket cost < $0.70
+- Monitor GPU rental marketplace APIs for current H100 spot prices
+- Track demand signals: new model releases, training runs, compute shortages
+- Buy brackets near current price ± expected volatility
+
+**Exit Rules:**
+- Take profit at bid > $0.30 when price trend for the month is clear
+- GPU prices tend to be sticky (don't move fast), so mid-month trends are predictive
+- Hold to resolution for brackets matching current price trajectory
+
+**Risk Factors:**
+- Niche market with lower liquidity
+- GPU price data sources may not match Polymarket resolution source exactly
+- Sudden supply changes (e.g., new H200 availability) can move prices quickly
+- Only monthly resolution — slower trading cycle
+
+**Real-Time Data Sources:**
+- vast.ai: Public search API for GPU offers (no auth needed)
+- SF Compute: GPU pricing index
+- RunPod: Community cloud pricing
+- GPU Benchmark: Aggregated pricing data
+""",
 }
 
 # Full strategy overview for the home page
@@ -278,12 +355,12 @@ OVERVIEW_CONTENT = """
 
 ### The Core Strategy: Multi-Bracket Spread
 
-This bot paper trades the **Annica bracket spread strategy** across 7 Polymarket markets.
+This bot paper trades the **Annica bracket spread strategy** across 9 Polymarket markets.
 The strategy exploits a structural mispricing in multi-bracket NegRisk markets:
 
 1. **Structure**: Markets have 5-30+ mutually exclusive brackets. Exactly ONE resolves YES ($1.00).
-2. **Entry**: Buy YES on many brackets at 1-5 cents each. Total cost should be well under $1.00.
-3. **Edge**: Since one bracket MUST win ($1.00 payout), and total cost < $1.00, the spread is guaranteed profit.
+2. **Entry**: Buy YES on many brackets at 1-10 cents each. Total cost should be under $0.70.
+3. **Edge**: Since one bracket MUST win ($1.00 payout), and total cost < $0.70, the spread is profitable.
 4. **Active Management**: Sell appreciating brackets mid-period at 30-60 cents for early profit.
 
 ### Market Suitability Criteria
@@ -293,7 +370,7 @@ A market qualifies for this strategy when:
 - Quantitative/countable resolution (objective, not subjective)
 - Real-time data source for mid-period tracking
 - Recurring (weekly or more frequent)
-- Cheap tail brackets available (total spread < $0.40)
+- Cheap tail brackets available (total spread < $0.70)
 
 ### Tier 1 — Highest Expected Edge
 | # | Market | Why |
@@ -301,19 +378,21 @@ A market qualifies for this strategy when:
 | 1 | Trump Truth Social Posts | Same structure as Musk, much less competition |
 | 2 | MrBeast YouTube Views | Newer category, less quant attention, real-time data |
 | 3 | Kaito AI Attention | Brand new March 2026, first-mover opportunity |
+| 4 | First Week Album Sales | Music fans not bots, streaming data = real-time edge |
 
 ### Tier 2 — Moderate Edge
 | # | Market | Why |
 |---|--------|-----|
-| 4 | Daily Temperature | NegRisk netting works, daily frequency, 10+ cities |
-| 5 | Andrew Tate Posts | 22 brackets, ultra-low competition |
-| 6 | Box Office Weekends | NegRisk, partial real-time tracking |
-| 7 | Elon Musk Tweets | Original strategy, declining edge |
+| 5 | Daily Temperature | NegRisk netting works, daily frequency, 10+ cities |
+| 6 | Andrew Tate Posts | 22 brackets, ultra-low competition |
+| 7 | Box Office Weekends | NegRisk, partial real-time tracking |
+| 8 | GPU Rental Prices | Niche market, few understand GPU pricing dynamics |
+| 9 | Elon Musk Tweets | Original strategy, declining edge |
 
 ### Simulation Parameters
-- **Starting capital**: $1,000 per strategy ($7,000 total)
+- **Starting capital**: $1,000 per strategy ($9,000 total)
 - **Bet size**: 1% of equity (~$10 per trade)
-- **Entry threshold**: Total bracket cost < $0.40
+- **Entry threshold**: Total bracket cost < $0.70
 - **Take profit**: Bid > $0.30
 - **Volume filter**: > $1,000 per bracket
 """

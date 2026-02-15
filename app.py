@@ -25,9 +25,11 @@ STRATEGIES = [
     {"name": "trump_posts", "display": "Trump Posts", "tier": 1},
     {"name": "mrbeast_views", "display": "MrBeast Views", "tier": 1},
     {"name": "kaito_ai", "display": "Kaito AI", "tier": 1},
+    {"name": "album_sales", "display": "Album Sales", "tier": 1},
     {"name": "temperature", "display": "Daily Temperature", "tier": 2},
     {"name": "tate_posts", "display": "Tate Posts", "tier": 2},
     {"name": "box_office", "display": "Box Office", "tier": 2},
+    {"name": "gpu_prices", "display": "GPU Prices", "tier": 2},
     {"name": "musk_tweets", "display": "Musk Tweets", "tier": 2},
 ]
 
@@ -72,7 +74,7 @@ st.dataframe(df, use_container_width=True, hide_index=True)
 
 # Total equity
 st.metric("Combined Portfolio Equity", f"${total_equity:,.2f}",
-          delta=f"{((total_equity - 7000) / 7000 * 100):+.1f}%")
+          delta=f"{((total_equity - 9000) / 9000 * 100):+.1f}%")
 
 st.divider()
 
@@ -84,7 +86,7 @@ fig, ax = plt.subplots(figsize=(12, 5))
 fig.patch.set_facecolor("#0e1117")
 ax.set_facecolor("#0e1117")
 
-colors = ["#00d4aa", "#ff6b6b", "#ffd93d", "#6bcbff", "#c084fc", "#fb923c", "#4ade80"]
+colors = ["#00d4aa", "#ff6b6b", "#ffd93d", "#6bcbff", "#c084fc", "#fb923c", "#4ade80", "#f472b6", "#a3e635"]
 
 for i, s in enumerate(STRATEGIES):
     state = StrategyState(s["name"])

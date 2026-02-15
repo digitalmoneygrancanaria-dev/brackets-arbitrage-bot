@@ -266,6 +266,87 @@ def get_window_post_count(username: str, start_date: str, end_date: str) -> Opti
 
 
 # ---------------------------------------------------------------------------
+# Apple Music RSS — free, no auth, JSON chart data
+# ---------------------------------------------------------------------------
+
+_apple_cache: dict = {}
+_apple_cache_time: float = 0.0
+_APPLE_CACHE_TTL = 600  # 10 minutes
+
+def get_apple_music_top_albums(country: str = "us", limit: int = 100) -> list[dict]:
+    """
+    Get top albums from Apple Music RSS feed. Free, no auth needed.
+    Returns list of dicts with: name, artistName, id, releaseDate, url, artworkUrl100, genres
+    """
+    global _apple_cache, _apple_cache_time
+    cache_key = f"{country}_{limit}"
+    now = time.time()
+    if cache_key in _apple_cache and (now - _apple_cache_time) < _APPLE_CACHE_TTL:
+        return _apple_cache[cache_key]
+
+    url = f"https://rss.applemarketingtools.com/api/v2/{country}/music/most-played/{limit}/albums.json"
+    data = _get(url)
+    if data and "feed" in data:
+        results = data["feed"].get("results", [])
+        _apple_cache[cache_key] = results
+        _apple_cache_time = now
+        return results
+    return []
+
+
+def get_apple_music_top_songs(country: str = "us", limit: int = 100) -> list[dict]:
+    """Get top songs from Apple Music RSS feed. Free, no auth needed."""
+    url = f"https://rss.applemarketingtools.com/api/v2/{country}/music/most-played/{limit}/songs.json"
+    data = _get(url)
+    if data and "feed" in data:
+        return data["feed"].get("results", [])
+    return []
+
+
+# ---------------------------------------------------------------------------
+# GPU Price Tracking — United Compute GitHub tracker (free, no auth)
+# ---------------------------------------------------------------------------
+
+_gpu_cache: Optional[list] = None
+_gpu_cache_time: float = 0.0
+_GPU_CACHE_TTL = 3600  # 1 hour
+
+def get_gpu_price_history(gpu_model: str = "NVIDIA_H100_PCIe_80_GB") -> list[dict]:
+    """
+    Get historical GPU rental price data from United Compute tracker.
+    Free, no auth needed. Updated daily by GitHub Action.
+    Returns list of dicts with date and price data.
+    """
+    global _gpu_cache, _gpu_cache_time
+    now = time.time()
+    if _gpu_cache is not None and (now - _gpu_cache_time) < _GPU_CACHE_TTL:
+        return _gpu_cache
+
+    url = f"https://raw.githubusercontent.com/United-Compute/gpu-price-tracker/main/data/{gpu_model}.json"
+    data = _get(url)
+    if data and isinstance(data, list):
+        _gpu_cache = data
+        _gpu_cache_time = now
+        return data
+    elif data and isinstance(data, dict):
+        # May be wrapped in an object
+        entries = data.get("data", data.get("prices", []))
+        if isinstance(entries, list):
+            _gpu_cache = entries
+            _gpu_cache_time = now
+            return entries
+    return []
+
+
+def get_latest_gpu_price(gpu_model: str = "NVIDIA_H100_PCIe_80_GB") -> Optional[dict]:
+    """Get the most recent GPU price entry."""
+    history = get_gpu_price_history(gpu_model)
+    if history:
+        return history[-1]
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------
 

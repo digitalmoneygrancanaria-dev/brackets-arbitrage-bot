@@ -1,5 +1,5 @@
 """
-Shared page layout builder for all 7 strategy pages.
+Shared page layout builder for all 9 strategy pages.
 Provides consistent UI across pages with strategy-specific customizations.
 """
 
@@ -16,7 +16,10 @@ from core.market_discovery import (
     discover_events, analyze_event_brackets, fetch_bracket_orderbooks,
     STRATEGY_CONFIG,
 )
-from core.api_client import get_xtracker_user, get_active_trackings, get_window_post_count
+from core.api_client import (
+    get_xtracker_user, get_active_trackings, get_window_post_count,
+    get_apple_music_top_albums, get_latest_gpu_price, get_gpu_price_history,
+)
 from core.simulation_engine import simulate_buy
 from core.strategy_content import STRATEGY_CONTENT
 
@@ -144,9 +147,9 @@ def render_strategy_page(
                     cols[1].write(f"Brackets: {meta.get('bracket_count', '?')}")
                     cols[2].write(f"Cost: ${meta.get('total_cost', 0):.2f}")
                     cols[3].write(f"Edge: {meta.get('edge_pct', 0):.0f}%")
-                    if meta.get('edge', 0) > 0.6:
+                    if meta.get('edge', 0) > 0.30:
                         cols[4].success("QUALIFYING")
-                    elif meta.get('edge', 0) > 0.2:
+                    elif meta.get('edge', 0) > 0.15:
                         cols[4].warning("MARGINAL")
                     else:
                         cols[4].error("NO EDGE")
@@ -276,7 +279,7 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
             cols[2].metric("Edge", f"{analysis['edge_pct']:.0f}%")
             cols[3].metric("Qualifying (1-5c)", len(analysis["qualifying"]))
 
-            if analysis["edge"] > 0.6 and analysis["qualifying"]:
+            if analysis["edge"] > 0.30 and analysis["qualifying"]:
                 # Show qualifying brackets with trade buttons
                 st.markdown("**Qualifying Brackets:**")
                 enriched = fetch_bracket_orderbooks(analysis["qualifying"][:10])
@@ -291,7 +294,7 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
                     if bcol4.button("Paper Trade", key=btn_key):
                         _execute_paper_trade(state, capital, event, bracket)
 
-            elif analysis["edge"] > 0.2:
+            elif analysis["edge"] > 0.15:
                 st.warning(f"Marginal edge ({analysis['edge_pct']:.0f}%). Monitor but don't trade.")
             else:
                 st.error(f"No edge ({analysis['edge_pct']:.0f}%). Bracket costs too high.")
@@ -453,6 +456,82 @@ def box_office_widgets(state, capital):
     """Box office specific widgets."""
     st.subheader("Current Releases")
     st.caption("Box office tracking for opening weekends. Markets appear when new movies release.")
+    st.divider()
+
+
+def album_sales_widgets(state, capital):
+    """Album sales widgets: Apple Music chart positions."""
+    st.subheader("Apple Music Top Albums (US)")
+    albums = get_apple_music_top_albums("us", 25)
+    if albums:
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.metric("Chart Data", f"{len(albums)} albums")
+        with col2:
+            st.caption("Source: Apple Music RSS (free, updated daily)")
+
+        # Show top 10 albums with rank
+        rows = []
+        for i, album in enumerate(albums[:10], 1):
+            rows.append({
+                "Rank": f"#{i}",
+                "Album": album.get("name", "Unknown"),
+                "Artist": album.get("artistName", "Unknown"),
+                "Release Date": album.get("releaseDate", ""),
+            })
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+        # Highlight recent releases (last 7 days) — these are the ones with active markets
+        from datetime import datetime, timedelta
+        cutoff = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        recent = [a for a in albums if a.get("releaseDate", "") >= cutoff]
+        if recent:
+            st.info(f"{len(recent)} recent releases (last 7 days) — check for active bracket markets")
+    else:
+        st.warning("Apple Music chart data unavailable. API may be temporarily down.")
+    st.divider()
+
+
+def gpu_price_widgets(state, capital):
+    """GPU price tracking widgets: H100 rental price data."""
+    st.subheader("H100 GPU Rental Prices")
+
+    latest = get_latest_gpu_price()
+    if latest:
+        # Display latest price data
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            price = latest.get("price") or latest.get("avg_price") or latest.get("value")
+            if price:
+                st.metric("Latest H100 Price", f"${float(price):.2f}/hr")
+            else:
+                st.metric("Latest Entry", str(latest))
+        with col2:
+            date_val = latest.get("date") or latest.get("timestamp") or ""
+            st.caption(f"Date: {date_val}")
+        with col3:
+            st.caption("Source: United Compute GPU Price Tracker")
+
+        # Show price history chart if available
+        history = get_gpu_price_history()
+        if len(history) >= 2:
+            prices = []
+            dates = []
+            for entry in history[-30:]:  # Last 30 days
+                p = entry.get("price") or entry.get("avg_price") or entry.get("value")
+                d = entry.get("date") or entry.get("timestamp")
+                if p and d:
+                    try:
+                        prices.append(float(p))
+                        dates.append(str(d))
+                    except (ValueError, TypeError):
+                        pass
+            if prices:
+                chart_data = pd.DataFrame({"Date": dates, "Price ($/hr)": prices})
+                st.line_chart(chart_data, x="Date", y="Price ($/hr)")
+    else:
+        st.warning("GPU price data unavailable. GitHub data source may be temporarily down.")
+        st.caption("Resolution source: Silicon Data H100 Index (SDH100RT) — silicondata.com")
     st.divider()
 
 
