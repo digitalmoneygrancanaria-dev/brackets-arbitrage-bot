@@ -20,9 +20,14 @@ Much less competition than Musk tweet markets, identical NegRisk bracket structu
 Trump's posting cadence is more erratic than Musk's, creating higher variance but also
 cheaper tail brackets when uncertainty is high.
 
+**Smart Selection:** XTracker velocity projection estimates final post count. The bot
+auto-selects up to 8 brackets centered around the projected outcome. When no prediction
+is available, falls back to cheapest-first selection.
+
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95 (sum of all YES prices)
-- Buy 6-8 brackets covering the plausible range at 1-5 cents each
+- Auto-select up to 8 brackets at 1-10 cents via "Buy Bracket Spread"
+- Selection centered on XTracker velocity estimate (posts/hr * remaining hours)
 - Use limit-order simulation (walk asks) with 10% depth cap
 - Minimum volume > $1,000 per bracket
 
@@ -38,7 +43,7 @@ cheaper tail brackets when uncertainty is high.
 - Fewer brackets means less spread coverage
 
 **Data Sources:**
-- XTracker: Real-time post count from @realDonaldTrump
+- XTracker: Real-time post count + velocity projection from @realDonaldTrump
 - Gamma API: Market prices and resolution status
 - CLOB API: Live orderbook for fill simulation
 """,
@@ -58,10 +63,13 @@ Newer market category with less quant attention. YouTube view counts are publicl
 trackable in near-real-time, providing an information advantage similar to XTracker
 for tweet counts. View velocity in the first hours after upload is highly predictive.
 
+**Smart Selection:** No real-time predictor yet — selects up to 8 cheapest qualifying
+brackets for maximum spread coverage. Batch buy places all trades in one click.
+
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95
+- Auto-select up to 8 brackets via "Buy Bracket Spread" (cheapest first)
 - Focus on Day 1 and Day 6 view count brackets
-- Buy brackets spanning the likely view range based on recent video performance
 - Check YT view velocity before entering
 
 **Exit Rules:**
@@ -96,10 +104,13 @@ for tweet counts. View velocity in the first hours after upload is highly predic
 Brand new market category launching in early March 2026. No established bot
 infrastructure, unfamiliar resolution metric, first-mover opportunity.
 
+**Smart Selection:** No predictor available yet. At launch, will auto-select up to 8
+cheapest qualifying brackets and batch buy the spread in one click.
+
 **Strategy:**
 - Be first mover — evaluate bracket structure immediately at launch
 - Look for mispriced brackets where Kaito AI metric behavior is poorly understood
-- The same multi-bracket spread applies if NegRisk structure is used
+- Use "Buy Bracket Spread" to enter positions across multiple brackets instantly
 
 **Risk Factors:**
 - Opaque AI model — resolution mechanics uncertain until launch
@@ -110,7 +121,7 @@ infrastructure, unfamiliar resolution metric, first-mover opportunity.
 **Action:**
 - Monitor for launch in early March 2026
 - Auto-poll Gamma API for new Kaito-related markets
-- Paper trade immediately when brackets appear
+- Paper trade immediately when brackets appear via batch buy
 """,
 
     "temperature": """
@@ -129,11 +140,14 @@ infrastructure, unfamiliar resolution metric, first-mover opportunity.
 NegRisk netting on Polymarket makes the "buy all brackets" approach viable (unlike Kalshi
 where spreads always sum >$1.00). Best during high-uncertainty weather patterns.
 
+**Smart Selection:** No real-time weather predictor integrated yet. Selects up to 6
+cheapest qualifying brackets per city. Batch buy places all trades in one click.
+
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95
+- Auto-select up to 6 brackets via "Buy Bracket Spread" (cheapest first)
 - Target high-uncertainty days (cold fronts, storms, transitional seasons)
 - Focus on cities with widest temperature uncertainty in forecasts
-- Buy brackets near forecast edges where models disagree
 
 **Exit Rules:**
 - Same-day resolution — hold to expiry or sell when temperature trend is clear
@@ -168,9 +182,14 @@ Very low competition compared to Musk tweets. The 22-bracket structure provides
 extensive spread coverage, and tail bracket prices are ultra-cheap (0.3-0.8 cents).
 Tate's posting behavior is somewhat predictable (prolific poster, 200-400+ per week).
 
+**Smart Selection:** XTracker velocity projection estimates final post count. The bot
+auto-selects up to 15 brackets centered around the projected outcome — with 22 brackets
+and ultra-cheap prices, this covers the vast majority of the range.
+
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95 (with 22 brackets, likely achievable)
-- Buy 15-20 brackets covering the full range at 0.3-2 cents each
+- Auto-select up to 15 brackets via "Buy Bracket Spread"
+- Selection centered on XTracker velocity estimate (posts/hr * remaining hours)
 - Total cost target: $0.15-$0.25 per complete set
 
 **Exit Rules:**
@@ -185,7 +204,7 @@ Tate's posting behavior is somewhat predictable (prolific poster, 200-400+ per w
 - Platform risk (X account status)
 
 **Data Sources:**
-- XTracker: Real-time post count from @Cobratate
+- XTracker: Real-time post count + velocity projection from @Cobratate
 - Gamma API: Market prices and resolution
 - CLOB API: Orderbook data
 """,
@@ -206,10 +225,13 @@ Less quant attention than crypto/weather markets. Partial real-time tracking is
 possible via Friday/Saturday box office estimates (BoxOfficeMojo, The Numbers).
 Opening day numbers typically become available Saturday morning.
 
+**Smart Selection:** No real-time predictor yet. With only 4-5 brackets per movie, the
+bot auto-selects up to 4 cheapest qualifying brackets — effectively buying the full spread.
+
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95
+- Auto-select up to 4 brackets via "Buy Bracket Spread" (cheapest first)
 - Focus on high-profile releases with wider bracket ranges
-- Buy brackets based on tracking/presale data + comparable movies
 - Enter before Thursday night previews
 
 **Exit Rules:**
@@ -245,9 +267,14 @@ This is the original Annica strategy. The edge has compressed significantly as o
 Feb 2026 due to media coverage and copycat traders. Bracket costs now sum to $0.80-$0.95
 on many markets, leaving only 5-20% theoretical edge.
 
+**Smart Selection:** XTracker velocity projection estimates final tweet count. The bot
+auto-selects up to 10 brackets centered around the projected outcome. With declining
+edge, smart selection is critical to avoid buying overpriced brackets.
+
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95 (becoming rare)
-- Buy 8-15 brackets covering plausible tweet-count range
+- Auto-select up to 10 brackets via "Buy Bracket Spread"
+- Selection centered on XTracker velocity estimate (tweets/hr * remaining hours)
 - Target 7-day markets for more time and data
 
 **Exit Rules:**
@@ -266,7 +293,7 @@ Demoted from primary strategy due to edge compression. Continue monitoring at re
 size while validating Tier 1 alternatives.
 
 **Data Sources:**
-- XTracker: Real-time tweet count
+- XTracker: Real-time tweet count + velocity projection
 - Gamma API: Market prices and resolution
 - CLOB API: Orderbook data
 """,
@@ -286,10 +313,14 @@ Newest bracket category with very little quant attention. Music fans trade these
 not algorithmic traders. Streaming velocity in the first 24-48 hours is highly predictive
 of final first-week numbers, giving a real-time data advantage.
 
+**Smart Selection:** Uses Apple Music chart rank as a rough sales estimate (top 1 ~200K,
+top 5 ~100K, top 10 ~50K). Auto-selects up to 8 brackets centered around the estimate.
+Batch buy places all trades in one click.
+
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95
-- Buy brackets spanning the likely sales range based on pre-release indicators
-- Check Spotify daily chart position and streaming velocity before entering
+- Auto-select up to 8 brackets via "Buy Bracket Spread"
+- Selection centered on Apple Music chart rank heuristic estimate
 - Focus on high-profile releases (BTS, BlackPink, Taylor Swift, Drake, etc.)
 
 **Exit Rules:**
@@ -304,8 +335,8 @@ of final first-week numbers, giving a real-time data advantage.
 - Lower liquidity on some smaller artist markets
 
 **Real-Time Data Sources:**
+- Apple Music: Daily album chart positions (used for outcome prediction)
 - Spotify Charts: Daily top albums chart + stream counts via kworb.net
-- Apple Music: Daily album chart positions
 - Billboard: Official first-week projections (usually published mid-week)
 - Spotify API: Track play counts (updated ~daily)
 """,
@@ -324,11 +355,15 @@ Very few traders understand GPU rental market dynamics. Price movements are driv
 AI model training demand, new GPU launches, and supply constraints — factors most
 prediction market participants don't track. The market is small but inefficient.
 
+**Smart Selection:** Uses the latest H100 price from United Compute GPU Tracker as the
+outcome estimate. Auto-selects up to 6 brackets centered around the current price.
+Batch buy places all trades in one click.
+
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95
-- Monitor GPU rental marketplace APIs for current H100 spot prices
+- Auto-select up to 6 brackets via "Buy Bracket Spread"
+- Selection centered on latest H100 price from United Compute tracker
 - Track demand signals: new model releases, training runs, compute shortages
-- Buy brackets near current price ± expected volatility
 
 **Exit Rules:**
 - Take profit at bid > $0.30 when price trend for the month is clear
@@ -342,10 +377,10 @@ prediction market participants don't track. The market is small but inefficient.
 - Only monthly resolution — slower trading cycle
 
 **Real-Time Data Sources:**
+- United Compute GPU Tracker: Latest H100 price (used for outcome prediction)
 - vast.ai: Public search API for GPU offers (no auth needed)
 - SF Compute: GPU pricing index
 - RunPod: Community cloud pricing
-- GPU Benchmark: Aggregated pricing data
 """,
 }
 
@@ -359,9 +394,10 @@ This bot paper trades the **Annica bracket spread strategy** across 9 Polymarket
 The strategy exploits a structural mispricing in multi-bracket NegRisk markets:
 
 1. **Structure**: Markets have 5-30+ mutually exclusive brackets. Exactly ONE resolves YES ($1.00).
-2. **Entry**: Buy YES on many brackets at 1-10 cents each. Total cost should be under $0.95.
-3. **Edge**: Since one bracket MUST win ($1.00 payout), and total cost < $0.95, the spread is profitable.
-4. **Active Management**: Sell appreciating brackets mid-period at 30-60 cents for early profit.
+2. **Smart Selection**: Real-time data (XTracker velocity, GPU prices, chart ranks) estimates the likely outcome. Brackets closest to the estimate are auto-selected.
+3. **Batch Buy**: One-click "Buy Bracket Spread" places trades across all selected brackets simultaneously.
+4. **Edge**: Since one bracket MUST win ($1.00 payout), and total cost < $0.95, the spread is profitable.
+5. **Active Management**: Sell appreciating brackets mid-period at 30-60 cents for early profit.
 
 ### Market Suitability Criteria
 
@@ -391,8 +427,22 @@ A market qualifies for this strategy when:
 
 ### Simulation Parameters
 - **Starting capital**: $1,000 per strategy ($9,000 total)
-- **Bet size**: 1% of equity (~$10 per trade)
+- **Bet size**: 1% of equity (~$10 per bracket per batch)
 - **Entry threshold**: Total bracket cost < $0.95
+- **Qualifying range**: 1-10 cents per bracket
 - **Take profit**: Bid > $0.30
 - **Volume filter**: > $1,000 per bracket
+
+### Smart Selection Predictors
+| Strategy | Predictor | Source |
+|----------|-----------|--------|
+| Trump Posts | Velocity projection | XTracker @realDonaldTrump |
+| Tate Posts | Velocity projection | XTracker @Cobratate |
+| Musk Tweets | Velocity projection | XTracker @elonmusk |
+| Album Sales | Chart rank heuristic | Apple Music RSS |
+| GPU Prices | Latest H100 price | United Compute tracker |
+| Temperature | None (cheapest first) | — |
+| Box Office | None (cheapest first) | — |
+| MrBeast | None (cheapest first) | — |
+| Kaito AI | None (cheapest first) | — |
 """

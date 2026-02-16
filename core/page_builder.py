@@ -14,6 +14,7 @@ from core.state_manager import StrategyState, PaperTrade
 from core.capital_manager import CapitalManager
 from core.market_discovery import (
     discover_events, analyze_event_brackets, fetch_bracket_orderbooks,
+    estimate_outcome, select_bracket_spread,
     STRATEGY_CONFIG,
 )
 from core.api_client import (
@@ -247,7 +248,7 @@ def _schedule_auto_rerun(strategy_name: str):
 
 
 def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital: CapitalManager):
-    """Scan for markets, analyze brackets, and display with trade buttons."""
+    """Scan for markets, analyze brackets, and display with batch buy."""
     events = discover_events(strategy_name)
 
     if not events:
@@ -255,6 +256,38 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
         return
 
     st.success(f"Found {len(events)} events")
+
+    # Get outcome prediction for this strategy
+    prediction = None
+    for event in events:
+        if prediction is None:
+            prediction = estimate_outcome(strategy_name, event)
+        break  # Use first event for prediction context
+
+    # Show prediction if available
+    if prediction:
+        with st.container(border=True):
+            st.markdown("**Outcome Prediction**")
+            est = prediction.get("estimate", 0)
+            source = prediction.get("source", "")
+            pcols = st.columns(4)
+
+            if "velocity" in prediction:
+                pcols[0].metric("Estimated Final", f"~{est:.0f}")
+                pcols[1].metric("Velocity", f"{prediction['velocity']:.1f}/hr")
+                pcols[2].metric("Current Count", prediction.get("current_count", "?"))
+                pcols[3].metric("Hours Left", f"{prediction.get('remaining_hours', 0):.1f}h")
+                window_title = prediction.get("window_title", "")
+                if window_title:
+                    st.caption(f"Window: {window_title} | Source: {source}")
+            elif "top_album" in prediction:
+                pcols[0].metric("Est. Units", f"~{est:,.0f}")
+                pcols[1].write(f"Top: {prediction['top_album']}")
+                pcols[2].write(f"By: {prediction['top_artist']}")
+                pcols[3].caption(source)
+            else:
+                pcols[0].metric("Estimate", f"{est}")
+                pcols[1].caption(source)
 
     for event in events:
         analysis = analyze_event_brackets(event)
@@ -277,22 +310,66 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
             cols[0].metric("Brackets", analysis["bracket_count"])
             cols[1].metric("Total Cost", f"${analysis['total_cost']:.2f}")
             cols[2].metric("Edge", f"{analysis['edge_pct']:.0f}%")
-            cols[3].metric("Qualifying (1-5c)", len(analysis["qualifying"]))
+            cols[3].metric("Qualifying (1-10c)", len(analysis["qualifying"]))
 
             if analysis["edge"] > 0.05 and analysis["qualifying"]:
-                # Show qualifying brackets with trade buttons
-                st.markdown("**Qualifying Brackets:**")
-                enriched = fetch_bracket_orderbooks(analysis["qualifying"][:10])
+                # Fetch orderbooks for qualifying brackets
+                enriched = fetch_bracket_orderbooks(analysis["qualifying"][:20])
 
-                for bracket in enriched:
-                    bcol1, bcol2, bcol3, bcol4 = st.columns([3, 1, 1, 1])
-                    bcol1.write(bracket["title"][:50])
-                    bcol2.write(f"Ask: ${bracket.get('best_ask', bracket['yes_price']):.3f}")
-                    bcol3.write(f"Vol: ${bracket.get('volume', 0):,.0f}")
+                # Smart selection
+                selected = select_bracket_spread(enriched, strategy_name, prediction)
+                non_selected = [b for b in enriched if not b.get("selected")]
 
-                    btn_key = f"trade_{strategy_name}_{bracket.get('market_id', '')}_{bracket.get('token_id', '')[:8]}"
-                    if bcol4.button("Paper Trade", key=btn_key):
-                        _execute_paper_trade(state, capital, event, bracket)
+                # Compute spread cost summary
+                spread_cost = sum(
+                    b.get("best_ask", b.get("yes_price", 0))
+                    for b in selected if b.get("orderbook")
+                )
+                bet_size = capital.get_bet_size()
+                total_batch_cost = min(bet_size * len(selected), capital.cash)
+
+                # Show selected brackets
+                sel_method = "proximity to estimate" if prediction else "cheapest price"
+                st.markdown(f"**Selected Brackets** ({len(selected)} via {sel_method}):")
+
+                rows = []
+                for b in selected:
+                    ask = b.get("best_ask", b.get("yes_price", 0))
+                    rows.append({
+                        "Bracket": b.get("title", "")[:50],
+                        "Ask": f"${ask:.3f}",
+                        "Vol": f"${b.get('volume', 0):,.0f}",
+                        "Spread": f"${b.get('spread', 0):.3f}" if b.get("spread") else "-",
+                        "Filters": "PASS" if b.get("passes_filters") else "WARN",
+                    })
+                if rows:
+                    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+                # Spread summary
+                scol1, scol2, scol3 = st.columns(3)
+                scol1.metric("Total Spread Ask", f"${spread_cost:.3f}")
+                scol2.metric("Potential Payout", "$1.00")
+                edge_pct = ((1.0 - spread_cost) / 1.0 * 100) if spread_cost < 1 else 0
+                scol3.metric("Spread Edge", f"{edge_pct:.0f}%")
+
+                # Single batch buy button
+                batch_label = f"Buy Bracket Spread ({len(selected)} brackets, ~${total_batch_cost:.2f})"
+                btn_key = f"batch_{strategy_name}_{event_id}_{int(time.time()) // 300}"
+                if st.button(batch_label, key=btn_key, type="primary", use_container_width=True):
+                    _execute_batch_trade(state, capital, event, selected)
+
+                # Show non-selected brackets in secondary table
+                if non_selected:
+                    with st.expander(f"Other qualifying brackets ({len(non_selected)})"):
+                        other_rows = []
+                        for b in non_selected:
+                            ask = b.get("best_ask", b.get("yes_price", 0))
+                            other_rows.append({
+                                "Bracket": b.get("title", "")[:50],
+                                "Ask": f"${ask:.3f}",
+                                "Vol": f"${b.get('volume', 0):,.0f}",
+                            })
+                        st.dataframe(pd.DataFrame(other_rows), use_container_width=True, hide_index=True)
 
             elif analysis["edge"] > 0.02:
                 st.warning(f"Marginal edge ({analysis['edge_pct']:.0f}%). Monitor but don't trade.")
@@ -300,49 +377,65 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
                 st.error(f"No edge ({analysis['edge_pct']:.0f}%). Bracket costs too high.")
 
 
-def _execute_paper_trade(state: StrategyState, capital: CapitalManager, event: dict, bracket: dict):
-    """Execute a simulated paper trade on a qualifying bracket."""
-    bet_size = capital.get_bet_size()
+def _execute_batch_trade(state: StrategyState, capital: CapitalManager, event: dict, selected_brackets: list[dict]):
+    """Execute batch paper trades on selected brackets."""
+    results = []
+    total_cost = 0.0
+    total_shares = 0.0
+    skipped = 0
 
-    if not capital.can_afford(bet_size):
-        st.error(f"Insufficient cash. Need ${bet_size:.2f}, have ${capital.cash:.2f}")
-        return
+    for bracket in selected_brackets:
+        bet_size = capital.get_bet_size()
 
-    orderbook = bracket.get("orderbook")
-    if not orderbook:
-        st.error("No orderbook data available for this bracket.")
-        return
+        if not capital.can_afford(bet_size):
+            skipped += len(selected_brackets) - len(results) - skipped
+            st.warning(f"Ran out of cash after {len(results)} trades. ${capital.cash:.2f} remaining.")
+            break
 
-    # Simulate buy
-    result = simulate_buy(orderbook, bet_size)
-    if not result:
-        st.error("Could not simulate fill. Orderbook may be empty.")
-        return
+        orderbook = bracket.get("orderbook")
+        if not orderbook:
+            skipped += 1
+            continue
 
-    # Create trade record
-    trade_id = f"SIM-{bracket.get('condition_id', 'X')[:8]}-{int(time.time())}"
-    trade = PaperTrade(
-        trade_id=trade_id,
-        strategy=state.strategy_name,
-        event_title=event.get("title", ""),
-        bracket_title=bracket.get("title", ""),
-        side="YES",
-        shares=result["shares"],
-        entry_price=result["avg_price"],
-        entry_cost=result["total_cost"],
-        entry_time=time.time(),
-        token_id=bracket.get("token_id", ""),
-        condition_id=bracket.get("condition_id", ""),
-        slippage=result["slippage_vs_best"],
-        orderbook_depth_at_entry=orderbook.get("ask_depth_usd", 0),
-        market_id=str(bracket.get("market_id", "")),
-        event_id=str(event.get("id", "")),
-    )
-    state.add_trade(trade)
-    st.success(
-        f"Paper trade placed: {result['shares']:.1f} shares @ ${result['avg_price']:.4f} "
-        f"= ${result['total_cost']:.2f} (slippage: {result['slippage_vs_best']:.2%})"
-    )
+        result = simulate_buy(orderbook, bet_size)
+        if not result:
+            skipped += 1
+            continue
+
+        trade_id = f"SIM-{bracket.get('condition_id', 'X')[:8]}-{int(time.time())}-{len(results)}"
+        trade = PaperTrade(
+            trade_id=trade_id,
+            strategy=state.strategy_name,
+            event_title=event.get("title", ""),
+            bracket_title=bracket.get("title", ""),
+            side="YES",
+            shares=result["shares"],
+            entry_price=result["avg_price"],
+            entry_cost=result["total_cost"],
+            entry_time=time.time(),
+            token_id=bracket.get("token_id", ""),
+            condition_id=bracket.get("condition_id", ""),
+            slippage=result["slippage_vs_best"],
+            orderbook_depth_at_entry=orderbook.get("ask_depth_usd", 0),
+            market_id=str(bracket.get("market_id", "")),
+            event_id=str(event.get("id", "")),
+        )
+        state.add_trade(trade)
+        results.append(result)
+        total_cost += result["total_cost"]
+        total_shares += result["shares"]
+
+    if results:
+        avg_slip = sum(r["slippage_vs_best"] for r in results) / len(results)
+        st.success(
+            f"Batch complete: {len(results)} trades placed, "
+            f"${total_cost:.2f} total cost, "
+            f"avg slippage {avg_slip:.2%}"
+        )
+        if skipped:
+            st.caption(f"{skipped} brackets skipped (no orderbook or no fill)")
+    else:
+        st.error("No trades could be filled. Orderbooks may be empty.")
 
 
 def _render_equity_curve(performance_log: list[dict]):
