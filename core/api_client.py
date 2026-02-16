@@ -114,6 +114,54 @@ def get_market(market_id: str) -> Optional[dict]:
     return _get(f"{GAMMA_BASE}/markets/{market_id}")
 
 
+def get_market_resolution(market_id: str) -> Optional[dict]:
+    """
+    Check if a market has resolved and determine the winner.
+
+    Returns structured resolution data, or None on API error.
+    Uses numeric gamma market ID (NOT condition_id).
+    """
+    market = get_market(market_id)
+    if not market:
+        return None
+
+    resolved = market.get("resolved", False)
+    closed = market.get("closed", False)
+    end_date = market.get("endDate", "")
+    accepting_orders = market.get("acceptingOrders", True)
+
+    # Parse outcomePrices — can be JSON string or list
+    outcome_prices = market.get("outcomePrices")
+    result = None
+    if outcome_prices:
+        if isinstance(outcome_prices, str):
+            try:
+                import json as _json
+                outcome_prices = _json.loads(outcome_prices)
+            except (ValueError, TypeError):
+                outcome_prices = None
+        if isinstance(outcome_prices, list) and len(outcome_prices) >= 2:
+            try:
+                yes_price = float(outcome_prices[0])
+                no_price = float(outcome_prices[1])
+                # ["0","0"] means not yet resolved — treat as no result
+                if yes_price >= 0.99:
+                    result = "yes"
+                elif no_price >= 0.99:
+                    result = "no"
+                # else: ambiguous or not resolved
+            except (ValueError, TypeError):
+                pass
+
+    return {
+        "resolved": bool(resolved),
+        "closed": bool(closed),
+        "result": result,
+        "end_date": end_date,
+        "accepting_orders": bool(accepting_orders),
+    }
+
+
 def get_markets_for_event(event_id: str) -> list[dict]:
     """Get all bracket markets for an event."""
     params = {"limit": 100}

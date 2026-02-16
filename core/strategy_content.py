@@ -31,10 +31,10 @@ is available, falls back to cheapest-first selection.
 - Use limit-order simulation (walk asks) with 10% depth cap
 - Minimum volume > $1,000 per bracket
 
-**Exit Rules:**
-- Take profit: Sell when bracket bid > $0.30
-- Hold to resolution if bracket is in winning range
-- WON = $1.00/share, LOST = $0.00/share
+**Exit Rules (automated every scan cycle):**
+- **Resolution**: Gamma API checked for `resolved=True` → WON ($1.00/share) or LOST ($0.00/share)
+- **Take-profit**: Auto-sell when best bid ≥ $0.30 (simulated market sell with slippage)
+- **Mark-to-market**: Unrealized P&L updated from CLOB orderbook bids each cycle
 
 **Risk Factors:**
 - Trump's posting is more erratic → harder to forecast
@@ -72,8 +72,9 @@ brackets for maximum spread coverage. Batch buy places all trades in one click.
 - Focus on Day 1 and Day 6 view count brackets
 - Check YT view velocity before entering
 
-**Exit Rules:**
-- Take profit at bid > $0.30 or when view trajectory is clear
+**Exit Rules (automated every scan cycle):**
+- **Resolution**: Auto-detected via Gamma API → WON ($1.00) or LOST ($0.00)
+- **Take-profit**: Auto-sell when best bid ≥ $0.30 (simulated with slippage)
 - Hold to resolution for brackets in the winning range
 
 **Risk Factors:**
@@ -149,9 +150,9 @@ cheapest qualifying brackets per city. Batch buy places all trades in one click.
 - Target high-uncertainty days (cold fronts, storms, transitional seasons)
 - Focus on cities with widest temperature uncertainty in forecasts
 
-**Exit Rules:**
-- Same-day resolution — hold to expiry or sell when temperature trend is clear
-- Take profit if a bracket reaches $0.30+ mid-day
+**Exit Rules (automated every scan cycle):**
+- Same-day resolution — auto-detected via Gamma API → WON ($1.00) or LOST ($0.00)
+- **Take-profit**: Auto-sell when best bid ≥ $0.30 mid-day
 
 **Risk Factors:**
 - Bot competition exists (open-source weather bots on GitHub)
@@ -192,8 +193,9 @@ and ultra-cheap prices, this covers the vast majority of the range.
 - Selection centered on XTracker velocity estimate (posts/hr * remaining hours)
 - Total cost target: $0.15-$0.25 per complete set
 
-**Exit Rules:**
-- Take profit at bid > $0.30
+**Exit Rules (automated every scan cycle):**
+- **Take-profit**: Auto-sell when best bid ≥ $0.30 (simulated with slippage)
+- **Resolution**: Auto-detected via Gamma API → WON ($1.00) or LOST ($0.00)
 - With 22 brackets, expect 18-20 to expire worthless
 - The 2-3 winners should pay for all losses plus profit
 
@@ -234,10 +236,11 @@ bot auto-selects up to 4 cheapest qualifying brackets — effectively buying the
 - Focus on high-profile releases with wider bracket ranges
 - Enter before Thursday night previews
 
-**Exit Rules:**
+**Exit Rules (automated every scan cycle):**
+- **Take-profit**: Auto-sell when best bid ≥ $0.30 (e.g., after strong Friday actuals)
+- **Resolution**: Auto-detected via Gamma API → WON ($1.00) or LOST ($0.00)
 - Friday evening: Re-evaluate based on Thursday preview numbers
 - Saturday: Sell/hold based on Friday actuals
-- Sunday resolution: Hold winning bracket to expiry
 
 **Risk Factors:**
 - Only 4-5 brackets limits the spread coverage
@@ -277,9 +280,9 @@ edge, smart selection is critical to avoid buying overpriced brackets.
 - Selection centered on XTracker velocity estimate (tweets/hr * remaining hours)
 - Target 7-day markets for more time and data
 
-**Exit Rules:**
-- Sell at bid > $0.30 mid-week as tweet count narrows range
-- Hold winning bracket to resolution
+**Exit Rules (automated every scan cycle):**
+- **Take-profit**: Auto-sell when best bid ≥ $0.30 mid-week as tweet count narrows range
+- **Resolution**: Auto-detected via Gamma API → WON ($1.00) or LOST ($0.00)
 - Merge opportunities: buy cheap NO + merge with YES for $1.00
 
 **Risk Factors:**
@@ -323,10 +326,10 @@ Batch buy places all trades in one click.
 - Selection centered on Apple Music chart rank heuristic estimate
 - Focus on high-profile releases (BTS, BlackPink, Taylor Swift, Drake, etc.)
 
-**Exit Rules:**
-- Take profit at bid > $0.30 when streaming trajectory clarifies
+**Exit Rules (automated every scan cycle):**
+- **Take-profit**: Auto-sell when best bid ≥ $0.30 (streaming trajectory clarifies)
+- **Resolution**: Auto-detected via Gamma API → WON ($1.00) or LOST ($0.00)
 - By day 3-4 of release week, the winning bracket is usually clear
-- Hold to resolution for brackets in the winning range
 
 **Risk Factors:**
 - Release dates can shift, affecting market timing
@@ -365,10 +368,10 @@ Batch buy places all trades in one click.
 - Selection centered on latest H100 price from United Compute tracker
 - Track demand signals: new model releases, training runs, compute shortages
 
-**Exit Rules:**
-- Take profit at bid > $0.30 when price trend for the month is clear
+**Exit Rules (automated every scan cycle):**
+- **Take-profit**: Auto-sell when best bid ≥ $0.30 (price trend clear mid-month)
+- **Resolution**: Auto-detected via Gamma API → WON ($1.00) or LOST ($0.00)
 - GPU prices tend to be sticky (don't move fast), so mid-month trends are predictive
-- Hold to resolution for brackets matching current price trajectory
 
 **Risk Factors:**
 - Niche market with lower liquidity
@@ -398,6 +401,14 @@ The strategy exploits a structural mispricing in multi-bracket NegRisk markets:
 3. **Batch Buy**: One-click "Buy Bracket Spread" places trades across all selected brackets simultaneously.
 4. **Edge**: Since one bracket MUST win ($1.00 payout), and total cost < $0.95, the spread is profitable.
 5. **Active Management**: Sell appreciating brackets mid-period at 30-60 cents for early profit.
+
+### Trade Settlement (Automated)
+
+Every scan cycle (5 minutes), the bot automatically settles open positions:
+
+1. **Resolution Detection** — Checks Gamma API for `resolved=True` + `outcomePrices`. If the trade's side matches the winner → **WON** ($1.00/share). Otherwise → **LOST** ($0.00/share).
+2. **Take-Profit** — Fetches CLOB orderbook for each open position. If best bid ≥ $0.30 → simulates a market sell (with realistic slippage) → **SOLD** at the fill price.
+3. **Mark-to-Market** — Collects current bid prices to compute unrealized P&L for all remaining open positions. Portfolio equity reflects live orderbook values.
 
 ### Market Suitability Criteria
 
@@ -430,8 +441,9 @@ A market qualifies for this strategy when:
 - **Bet size**: 1% of equity (~$10 per bracket per batch)
 - **Entry threshold**: Total bracket cost < $0.95
 - **Qualifying range**: 1-10 cents per bracket
-- **Take profit**: Bid > $0.30
+- **Take-profit**: Auto-sell when bid ≥ $0.30
 - **Volume filter**: > $1,000 per bracket
+- **Settlement cycle**: Every 5 minutes (resolution + take-profit + mark-to-market)
 
 ### Smart Selection Predictors
 | Strategy | Predictor | Source |

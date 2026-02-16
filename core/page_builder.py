@@ -20,8 +20,9 @@ from core.market_discovery import (
 from core.api_client import (
     get_xtracker_user, get_active_trackings, get_window_post_count,
     get_apple_music_top_albums, get_latest_gpu_price, get_gpu_price_history,
+    get_market_resolution, get_orderbook,
 )
-from core.simulation_engine import simulate_buy
+from core.simulation_engine import simulate_buy, simulate_sell
 from core.strategy_content import STRATEGY_CONTENT
 
 AUTO_SCAN_INTERVAL = 300  # 5 minutes in seconds
@@ -36,6 +37,75 @@ def _should_auto_scan(strategy_name: str) -> bool:
         st.session_state[last_key] = now
         return True
     return False
+
+
+TAKE_PROFIT_BID = 0.30  # Auto-sell when best bid >= $0.30
+
+
+def _sync_settled_trades(state: StrategyState, capital: CapitalManager) -> dict:
+    """
+    Check all open trades for resolution or take-profit.
+    Returns summary dict and current_bids for mark-to-market.
+    """
+    open_trades = state.get_open_trades()
+    if not open_trades:
+        return {"settled": 0, "won": 0, "lost": 0, "sold": 0,
+                "pnl": 0.0, "current_bids": {}}
+
+    settled = []
+    current_bids: dict[str, float] = {}
+
+    for trade in open_trades:
+        # --- 1. Check Gamma API resolution ---
+        if trade.market_id:
+            resolution = get_market_resolution(trade.market_id)
+            if resolution and resolution["resolved"] and resolution["result"]:
+                winner = resolution["result"]  # "yes" or "no"
+                trade_side = trade.side.lower()
+                if trade_side == winner:
+                    pnl = (1.00 - trade.entry_price) * trade.shares
+                    state.close_trade(trade.trade_id, "WON", 1.00, round(pnl, 4))
+                    settled.append(("WON", pnl))
+                else:
+                    pnl = -trade.entry_cost
+                    state.close_trade(trade.trade_id, "LOST", 0.00, round(pnl, 4))
+                    settled.append(("LOST", pnl))
+                continue  # Trade closed, skip orderbook check
+
+        # --- 2. Fetch orderbook for take-profit + mark-to-market ---
+        if not trade.token_id:
+            continue
+
+        orderbook = get_orderbook(trade.token_id)
+        if not orderbook:
+            continue
+
+        best_bid = orderbook.get("best_bid", 0.0)
+        current_bids[trade.token_id] = best_bid
+
+        # --- 3. Take-profit: auto-sell when bid >= $0.30 ---
+        if best_bid >= TAKE_PROFIT_BID:
+            sell_result = simulate_sell(orderbook, trade.shares)
+            if sell_result:
+                proceeds = sell_result["proceeds"]
+                pnl = proceeds - trade.entry_cost
+                exit_price = sell_result["avg_price"]
+                state.close_trade(trade.trade_id, "SOLD", round(exit_price, 6),
+                                  round(pnl, 4))
+                settled.append(("SOLD", pnl))
+
+    won = [s for s in settled if s[0] == "WON"]
+    lost = [s for s in settled if s[0] == "LOST"]
+    sold = [s for s in settled if s[0] == "SOLD"]
+
+    return {
+        "settled": len(settled),
+        "won": len(won),
+        "lost": len(lost),
+        "sold": len(sold),
+        "pnl": round(sum(p for _, p in settled), 4),
+        "current_bids": current_bids,
+    }
 
 
 def render_strategy_page(
@@ -62,6 +132,25 @@ def render_strategy_page(
     # --- Auto-scan: trigger scan every 5 minutes ---
     if _should_auto_scan(strategy_name):
         st.session_state[f"{strategy_name}_scan"] = True
+
+    # --- Settlement: run on every scan cycle ---
+    current_bids: dict[str, float] = st.session_state.get(f"{strategy_name}_current_bids", {})
+    if st.session_state.get(f"{strategy_name}_scan"):
+        with st.spinner("Settling open positions..."):
+            settle_result = _sync_settled_trades(state, capital)
+            current_bids = settle_result["current_bids"]
+            st.session_state[f"{strategy_name}_current_bids"] = current_bids
+            if settle_result["settled"] > 0:
+                parts = []
+                if settle_result["won"]:
+                    parts.append(f"{settle_result['won']} WON")
+                if settle_result["lost"]:
+                    parts.append(f"{settle_result['lost']} LOST")
+                if settle_result["sold"]:
+                    parts.append(f"{settle_result['sold']} SOLD")
+                pnl = settle_result["pnl"]
+                st.success(f"Settled {settle_result['settled']} trades: "
+                           f"{', '.join(parts)} ({'+' if pnl >= 0 else ''}${pnl:.2f})")
 
     # --- Sidebar ---
     with st.sidebar:
@@ -90,8 +179,8 @@ def render_strategy_page(
             st.success("Simulation reset!")
             st.rerun()
 
-        # Quick metrics in sidebar
-        metrics = capital.get_metrics()
+        # Quick metrics in sidebar (with mark-to-market bids)
+        metrics = capital.get_metrics(current_bids)
         st.metric("Total Equity", f"${metrics['total_equity']:,.2f}",
                    delta=f"{metrics['return_pct']:+.1f}%")
         st.metric("Open Positions", metrics["open_trades"])
@@ -112,7 +201,7 @@ def render_strategy_page(
 
     # --- Portfolio Metrics Row ---
     st.subheader("Portfolio")
-    metrics = capital.get_metrics()
+    metrics = capital.get_metrics(current_bids)
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         st.metric("Cash Balance", f"${metrics['cash']:,.2f}")
@@ -166,13 +255,17 @@ def render_strategy_page(
         rows = []
         for t in open_trades:
             hold_hours = (time.time() - t.entry_time) / 3600
+            bid = current_bids.get(t.token_id, 0.0)
+            mkt_value = t.shares * bid if bid else 0.0
+            unreal_pnl = mkt_value - t.entry_cost if bid else 0.0
             rows.append({
                 "Bracket": t.bracket_title[:40],
                 "Entry Price": f"${t.entry_price:.4f}",
                 "Shares": f"{t.shares:.1f}",
                 "Cost": f"${t.entry_cost:.2f}",
+                "Bid": f"${bid:.3f}" if bid else "-",
+                "Unrealized": f"${unreal_pnl:+.2f}" if bid else "-",
                 "Hold Time": f"{hold_hours:.1f}h",
-                "Status": t.status,
             })
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
