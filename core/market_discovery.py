@@ -14,6 +14,7 @@ from core.simulation_engine import (
     compute_theoretical_edge,
     passes_volume_filter,
     passes_liquidity_filter,
+    MIN_HOURS_TO_EXPIRY,
 )
 
 # Strategy search configurations
@@ -126,6 +127,17 @@ def analyze_event_brackets(event: dict) -> dict:
 
         volume = float(mkt.get("volume", 0) or mkt.get("volumeNum", 0) or 0)
 
+        # Compute hours to expiry
+        end_date_str = mkt.get("endDate", "")
+        hours_to_expiry = None
+        if end_date_str:
+            try:
+                end_dt = datetime.fromisoformat(end_date_str.replace("Z", "+00:00"))
+                now = datetime.now(timezone.utc)
+                hours_to_expiry = (end_dt - now).total_seconds() / 3600
+            except (ValueError, TypeError):
+                pass
+
         brackets.append({
             "market_id": mkt.get("id", ""),
             "title": mkt.get("groupItemTitle", mkt.get("question", "Unknown")),
@@ -135,11 +147,19 @@ def analyze_event_brackets(event: dict) -> dict:
             "token_id": _get_yes_token_id(mkt),
             "resolved": mkt.get("resolved", False),
             "closed": mkt.get("closed", False),
-            "end_date": mkt.get("endDate", ""),
+            "end_date": end_date_str,
+            "accepting_orders": mkt.get("acceptingOrders", True),
+            "hours_to_expiry": hours_to_expiry,
         })
 
     # Compute totals
-    active_brackets = [b for b in brackets if not b["resolved"] and not b["closed"]]
+    active_brackets = [
+        b for b in brackets
+        if not b["resolved"]
+        and not b["closed"]
+        and b.get("accepting_orders", True)
+        and (b.get("hours_to_expiry") is None or b["hours_to_expiry"] >= MIN_HOURS_TO_EXPIRY)
+    ]
     prices = [b["yes_price"] for b in active_brackets if b["yes_price"] > 0]
     total_cost = compute_bracket_set_cost(prices)
     edge = compute_theoretical_edge(total_cost)
@@ -181,6 +201,11 @@ def fetch_bracket_orderbooks(qualifying_brackets: list[dict]) -> list[dict]:
     """
     enriched = []
     for bracket in qualifying_brackets:
+        # Skip brackets expiring within MIN_HOURS_TO_EXPIRY (don't waste API calls)
+        hte = bracket.get("hours_to_expiry")
+        if hte is not None and hte < MIN_HOURS_TO_EXPIRY:
+            continue
+
         token_id = bracket.get("token_id", "")
         if not token_id:
             continue

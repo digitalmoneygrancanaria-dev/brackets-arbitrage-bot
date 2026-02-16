@@ -25,7 +25,7 @@ auto-selects up to 8 brackets centered around the projected outcome. When no pre
 is available, falls back to even-spread selection across the full bracket range.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.95 (sum of all YES prices)
+- Only enter when total bracket cost ≤ $0.95 (sum of all YES prices)
 - Auto-select up to 8 brackets at 1-10 cents via "Buy Bracket Spread"
 - Selection centered on XTracker velocity estimate (posts/hr * remaining hours)
 - Use limit-order simulation (walk asks) with 10% depth cap
@@ -67,7 +67,7 @@ for tweet counts. View velocity in the first hours after upload is highly predic
 across the full bracket range for maximum coverage. Batch buy places all trades in one click.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.95
+- Only enter when total bracket cost ≤ $0.95
 - Auto-select up to 8 brackets via "Buy Bracket Spread" (even spread)
 - Focus on Day 1 and Day 6 view count brackets
 - Check YT view velocity before entering
@@ -145,7 +145,7 @@ where spreads always sum >$1.00). Best during high-uncertainty weather patterns.
 brackets evenly spread across the temperature range per city. Batch buy places all trades in one click.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.95
+- Only enter when total bracket cost ≤ $0.95
 - Auto-select up to 6 brackets via "Buy Bracket Spread" (even spread)
 - Target high-uncertainty days (cold fronts, storms, transitional seasons)
 - Focus on cities with widest temperature uncertainty in forecasts
@@ -188,7 +188,7 @@ auto-selects up to 15 brackets centered around the projected outcome — with 22
 and ultra-cheap prices, this covers the vast majority of the range.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.95 (with 22 brackets, likely achievable)
+- Only enter when total bracket cost ≤ $0.95 (with 22 brackets, likely achievable)
 - Auto-select up to 15 brackets via "Buy Bracket Spread"
 - Selection centered on XTracker velocity estimate (posts/hr * remaining hours)
 - Total cost target: $0.15-$0.25 per complete set
@@ -231,7 +231,7 @@ Opening day numbers typically become available Saturday morning.
 bot auto-selects up to 4 brackets evenly spread across the range — effectively buying the full spread.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.95
+- Only enter when total bracket cost ≤ $0.95
 - Auto-select up to 4 brackets via "Buy Bracket Spread" (even spread)
 - Focus on high-profile releases with wider bracket ranges
 - Enter before Thursday night previews
@@ -275,7 +275,7 @@ auto-selects up to 10 brackets centered around the projected outcome. With decli
 edge, smart selection is critical to avoid buying overpriced brackets.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.95 (becoming rare)
+- Only enter when total bracket cost ≤ $0.95 (becoming rare)
 - Auto-select up to 10 brackets via "Buy Bracket Spread"
 - Selection centered on XTracker velocity estimate (tweets/hr * remaining hours)
 - Target 7-day markets for more time and data
@@ -321,7 +321,7 @@ top 5 ~100K, top 10 ~50K). Auto-selects up to 8 brackets centered around the est
 Batch buy places all trades in one click.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.95
+- Only enter when total bracket cost ≤ $0.95
 - Auto-select up to 8 brackets via "Buy Bracket Spread"
 - Selection centered on Apple Music chart rank heuristic estimate
 - Focus on high-profile releases (BTS, BlackPink, Taylor Swift, Drake, etc.)
@@ -363,7 +363,7 @@ outcome estimate. Auto-selects up to 6 brackets centered around the current pric
 Batch buy places all trades in one click.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.95
+- Only enter when total bracket cost ≤ $0.95
 - Auto-select up to 6 brackets via "Buy Bracket Spread"
 - Selection centered on latest H100 price from United Compute tracker
 - Track demand signals: new model releases, training runs, compute shortages
@@ -439,10 +439,12 @@ A market qualifies for this strategy when:
 ### Simulation Parameters
 - **Starting capital**: $1,000 per strategy ($9,000 total)
 - **Bet size**: 1% of equity (~$10 per bracket per batch)
-- **Entry threshold**: Total bracket cost < $0.95
+- **Entry threshold**: Total bracket cost ≤ $0.95 (edge ≥ 5%)
 - **Qualifying range**: 1-10 cents per bracket
 - **Take-profit**: Auto-sell when bid ≥ $0.30
 - **Volume filter**: > $1,000 per bracket
+- **Protocol fee**: 2% on resolution profits (Polymarket winner fee, deducted at settlement)
+- **Expiry guard**: Markets closing in < 6 hours are excluded (frozen orderbooks)
 - **Settlement cycle**: Every 5 minutes (resolution + take-profit + mark-to-market)
 
 ### Smart Selection Predictors

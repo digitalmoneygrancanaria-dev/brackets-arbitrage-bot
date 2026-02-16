@@ -33,6 +33,7 @@ class PaperTrade:
     orderbook_depth_at_entry: float = 0.0
     market_id: str = ""
     event_id: str = ""
+    fees_paid: float = 0.0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -103,13 +104,14 @@ class StrategyState:
         self._save()
         _append_simulation_log("TRADE_OPEN", self.strategy_name, trade.to_dict())
 
-    def close_trade(self, trade_id: str, status: str, exit_price: float, pnl: float):
+    def close_trade(self, trade_id: str, status: str, exit_price: float, pnl: float, fees: float = 0.0):
         for t in self.trades:
             if t.trade_id == trade_id:
                 t.status = status
                 t.exit_price = exit_price
                 t.exit_time = time.time()
                 t.pnl = pnl
+                t.fees_paid = fees
                 self.realized_pnl += pnl
                 self._save()
                 _append_simulation_log("TRADE_CLOSE", self.strategy_name, t.to_dict())

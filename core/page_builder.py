@@ -22,7 +22,7 @@ from core.api_client import (
     get_apple_music_top_albums, get_latest_gpu_price, get_gpu_price_history,
     get_market_resolution, get_orderbook,
 )
-from core.simulation_engine import simulate_buy, simulate_sell
+from core.simulation_engine import simulate_buy, simulate_sell, PROTOCOL_FEE_PCT
 from core.strategy_content import STRATEGY_CONTENT
 
 AUTO_SCAN_INTERVAL = 300  # 5 minutes in seconds
@@ -53,6 +53,7 @@ def _sync_settled_trades(state: StrategyState, capital: CapitalManager) -> dict:
                 "pnl": 0.0, "current_bids": {}}
 
     settled = []
+    total_fees = 0.0
     current_bids: dict[str, float] = {}
 
     for trade in open_trades:
@@ -63,8 +64,11 @@ def _sync_settled_trades(state: StrategyState, capital: CapitalManager) -> dict:
                 winner = resolution["result"]  # "yes" or "no"
                 trade_side = trade.side.lower()
                 if trade_side == winner:
-                    pnl = (1.00 - trade.entry_price) * trade.shares
-                    state.close_trade(trade.trade_id, "WON", 1.00, round(pnl, 4))
+                    gross_pnl = (1.00 - trade.entry_price) * trade.shares
+                    fee = gross_pnl * PROTOCOL_FEE_PCT
+                    pnl = gross_pnl - fee
+                    total_fees += fee
+                    state.close_trade(trade.trade_id, "WON", 1.00, round(pnl, 4), fees=round(fee, 4))
                     settled.append(("WON", pnl))
                 else:
                     pnl = -trade.entry_cost
@@ -104,6 +108,7 @@ def _sync_settled_trades(state: StrategyState, capital: CapitalManager) -> dict:
         "lost": len(lost),
         "sold": len(sold),
         "pnl": round(sum(p for _, p in settled), 4),
+        "fees_paid": round(total_fees, 4),
         "current_bids": current_bids,
     }
 
@@ -237,9 +242,9 @@ def render_strategy_page(
                     cols[1].write(f"Brackets: {meta.get('bracket_count', '?')}")
                     cols[2].write(f"Cost: ${meta.get('total_cost', 0):.2f}")
                     cols[3].write(f"Edge: {meta.get('edge_pct', 0):.0f}%")
-                    if meta.get('edge', 0) > 0.05:
+                    if meta.get('edge', 0) >= 0.05:
                         cols[4].success("QUALIFYING")
-                    elif meta.get('edge', 0) > 0.02:
+                    elif meta.get('edge', 0) >= 0.02:
                         cols[4].warning("MARGINAL")
                     else:
                         cols[4].error("NO EDGE")
@@ -405,7 +410,7 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
             cols[2].metric("Edge", f"{analysis['edge_pct']:.0f}%")
             cols[3].metric("Qualifying (1-10c)", len(analysis["qualifying"]))
 
-            if analysis["edge"] > 0.05 and analysis["qualifying"]:
+            if analysis["edge"] >= 0.05 and analysis["qualifying"]:
                 # Fetch orderbooks for qualifying brackets
                 enriched = fetch_bracket_orderbooks(analysis["qualifying"][:20])
 
@@ -477,7 +482,7 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
                             })
                         st.dataframe(pd.DataFrame(other_rows), use_container_width=True, hide_index=True)
 
-            elif analysis["edge"] > 0.02:
+            elif analysis["edge"] >= 0.02:
                 st.warning(f"Marginal edge ({analysis['edge_pct']:.0f}%). Monitor but don't trade.")
             else:
                 st.error(f"No edge ({analysis['edge_pct']:.0f}%). Bracket costs too high.")

@@ -5,6 +5,9 @@ Walks orderbook levels to simulate market orders with slippage.
 
 from typing import Optional
 
+PROTOCOL_FEE_PCT = 0.02  # 2% fee on resolution profits (Polymarket winner fee)
+MIN_HOURS_TO_EXPIRY = 6  # Skip markets expiring within 6 hours
+
 
 def simulate_buy(orderbook: dict, amount_usd: float, max_depth_pct: float = 0.10) -> Optional[dict]:
     """
@@ -160,7 +163,7 @@ def compute_bracket_set_cost(bracket_prices: list[float]) -> float:
 
 def compute_theoretical_edge(total_cost: float) -> float:
     """
-    Theoretical edge = 1.00 - total_cost.
-    Positive = profitable spread, negative = no edge.
+    Gross edge = 1.00 - total_cost. Positive = profitable spread.
+    Protocol fees (2%) are deducted at settlement, not here.
     """
     return 1.0 - total_cost
