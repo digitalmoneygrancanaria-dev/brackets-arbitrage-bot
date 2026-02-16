@@ -22,7 +22,7 @@ cheaper tail brackets when uncertainty is high.
 
 **Smart Selection:** XTracker velocity projection estimates final post count. The bot
 auto-selects up to 8 brackets centered around the projected outcome. When no prediction
-is available, falls back to cheapest-first selection.
+is available, falls back to even-spread selection across the full bracket range.
 
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95 (sum of all YES prices)
@@ -63,12 +63,12 @@ Newer market category with less quant attention. YouTube view counts are publicl
 trackable in near-real-time, providing an information advantage similar to XTracker
 for tweet counts. View velocity in the first hours after upload is highly predictive.
 
-**Smart Selection:** No real-time predictor yet — selects up to 8 cheapest qualifying
-brackets for maximum spread coverage. Batch buy places all trades in one click.
+**Smart Selection:** No real-time predictor yet — selects up to 8 brackets evenly spread
+across the full bracket range for maximum coverage. Batch buy places all trades in one click.
 
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95
-- Auto-select up to 8 brackets via "Buy Bracket Spread" (cheapest first)
+- Auto-select up to 8 brackets via "Buy Bracket Spread" (even spread)
 - Focus on Day 1 and Day 6 view count brackets
 - Check YT view velocity before entering
 
@@ -106,7 +106,7 @@ Brand new market category launching in early March 2026. No established bot
 infrastructure, unfamiliar resolution metric, first-mover opportunity.
 
 **Smart Selection:** No predictor available yet. At launch, will auto-select up to 8
-cheapest qualifying brackets and batch buy the spread in one click.
+brackets evenly spread across the full range and batch buy the spread in one click.
 
 **Strategy:**
 - Be first mover — evaluate bracket structure immediately at launch
@@ -142,11 +142,11 @@ NegRisk netting on Polymarket makes the "buy all brackets" approach viable (unli
 where spreads always sum >$1.00). Best during high-uncertainty weather patterns.
 
 **Smart Selection:** No real-time weather predictor integrated yet. Selects up to 6
-cheapest qualifying brackets per city. Batch buy places all trades in one click.
+brackets evenly spread across the temperature range per city. Batch buy places all trades in one click.
 
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95
-- Auto-select up to 6 brackets via "Buy Bracket Spread" (cheapest first)
+- Auto-select up to 6 brackets via "Buy Bracket Spread" (even spread)
 - Target high-uncertainty days (cold fronts, storms, transitional seasons)
 - Focus on cities with widest temperature uncertainty in forecasts
 
@@ -228,11 +228,11 @@ possible via Friday/Saturday box office estimates (BoxOfficeMojo, The Numbers).
 Opening day numbers typically become available Saturday morning.
 
 **Smart Selection:** No real-time predictor yet. With only 4-5 brackets per movie, the
-bot auto-selects up to 4 cheapest qualifying brackets — effectively buying the full spread.
+bot auto-selects up to 4 brackets evenly spread across the range — effectively buying the full spread.
 
 **Entry Rules:**
 - Only enter when total bracket cost < $0.95
-- Auto-select up to 4 brackets via "Buy Bracket Spread" (cheapest first)
+- Auto-select up to 4 brackets via "Buy Bracket Spread" (even spread)
 - Focus on high-profile releases with wider bracket ranges
 - Enter before Thursday night previews
 
@@ -453,8 +453,8 @@ A market qualifies for this strategy when:
 | Musk Tweets | Velocity projection | XTracker @elonmusk |
 | Album Sales | Chart rank heuristic | Apple Music RSS |
 | GPU Prices | Latest H100 price | United Compute tracker |
-| Temperature | None (cheapest first) | — |
-| Box Office | None (cheapest first) | — |
-| MrBeast | None (cheapest first) | — |
-| Kaito AI | None (cheapest first) | — |
+| Temperature | None (even spread) | — |
+| Box Office | None (even spread) | — |
+| MrBeast | None (even spread) | — |
+| Kaito AI | None (even spread) | — |
 """

@@ -459,9 +459,25 @@ def select_bracket_spread(
         scored.sort(key=lambda x: x[0])
         selected = [b for _, b in scored[:target_n]]
     else:
-        # Fallback: cheapest brackets first for maximum coverage
-        sorted_by_price = sorted(qualifying, key=lambda b: b.get("yes_price", 1.0))
-        selected = sorted_by_price[:target_n]
+        # Fallback: even spread across bracket range for maximum coverage
+        scored = []
+        for b in qualifying:
+            bracket_range = parse_bracket_range(b.get("title", ""))
+            if bracket_range:
+                mid = (bracket_range[0] + bracket_range[1]) / 2
+            else:
+                mid = float("inf")
+            scored.append((mid, b))
+        scored.sort(key=lambda x: x[0])
+
+        n = len(scored)
+        if n <= target_n:
+            selected = [b for _, b in scored]
+        elif target_n == 1:
+            selected = [scored[n // 2][1]]
+        else:
+            indices = [round(i * (n - 1) / (target_n - 1)) for i in range(target_n)]
+            selected = [scored[i][1] for i in indices]
 
     # Mark selected
     for b in selected:
