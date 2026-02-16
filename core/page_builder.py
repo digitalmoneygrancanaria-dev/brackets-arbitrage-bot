@@ -320,13 +320,18 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
                 selected = select_bracket_spread(enriched, strategy_name, prediction)
                 non_selected = [b for b in enriched if not b.get("selected")]
 
+                # Duplicate protection: filter out brackets we already hold
+                held_tokens = {t.token_id for t in state.get_open_trades()}
+                new_selected = [b for b in selected if b.get("token_id", "") not in held_tokens]
+                already_held = len(selected) - len(new_selected)
+
                 # Compute spread cost summary
                 spread_cost = sum(
                     b.get("best_ask", b.get("yes_price", 0))
                     for b in selected if b.get("orderbook")
                 )
                 bet_size = capital.get_bet_size()
-                total_batch_cost = min(bet_size * len(selected), capital.cash)
+                total_batch_cost = min(bet_size * len(new_selected), capital.cash)
 
                 # Show selected brackets
                 sel_method = "proximity to estimate" if prediction else "cheapest price"
@@ -335,12 +340,14 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
                 rows = []
                 for b in selected:
                     ask = b.get("best_ask", b.get("yes_price", 0))
+                    held = b.get("token_id", "") in held_tokens
                     rows.append({
                         "Bracket": b.get("title", "")[:50],
                         "Ask": f"${ask:.3f}",
                         "Vol": f"${b.get('volume', 0):,.0f}",
                         "Spread": f"${b.get('spread', 0):.3f}" if b.get("spread") else "-",
                         "Filters": "PASS" if b.get("passes_filters") else "WARN",
+                        "Status": "HELD" if held else "NEW",
                     })
                 if rows:
                     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
@@ -352,10 +359,16 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
                 edge_pct = ((1.0 - spread_cost) / 1.0 * 100) if spread_cost < 1 else 0
                 scol3.metric("Spread Edge", f"{edge_pct:.0f}%")
 
-                # Single batch buy button
-                batch_label = f"Buy Bracket Spread ({len(selected)} brackets, ~${total_batch_cost:.2f})"
-                btn_key = f"batch_{strategy_name}_{event_id}_{int(time.time()) // 300}"
-                if st.button(batch_label, key=btn_key, type="primary", use_container_width=True):
+                # Auto-execute batch buy on new brackets
+                if new_selected:
+                    st.info(f"Auto-buying {len(new_selected)} new brackets (~${total_batch_cost:.2f})...")
+                    _execute_batch_trade(state, capital, event, new_selected)
+                elif already_held:
+                    st.success(f"All {already_held} selected brackets already held. No new trades needed.")
+
+                # Manual re-buy button for edge cases (e.g. after reset)
+                btn_key = f"rebuy_{strategy_name}_{event_id}_{int(time.time()) // 300}"
+                if selected and st.button("Re-buy Full Spread", key=btn_key, type="secondary"):
                     _execute_batch_trade(state, capital, event, selected)
 
                 # Show non-selected brackets in secondary table
