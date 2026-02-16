@@ -147,9 +147,9 @@ def render_strategy_page(
                     cols[1].write(f"Brackets: {meta.get('bracket_count', '?')}")
                     cols[2].write(f"Cost: ${meta.get('total_cost', 0):.2f}")
                     cols[3].write(f"Edge: {meta.get('edge_pct', 0):.0f}%")
-                    if meta.get('edge', 0) > 0.30:
+                    if meta.get('edge', 0) > 0.05:
                         cols[4].success("QUALIFYING")
-                    elif meta.get('edge', 0) > 0.15:
+                    elif meta.get('edge', 0) > 0.02:
                         cols[4].warning("MARGINAL")
                     else:
                         cols[4].error("NO EDGE")
@@ -279,7 +279,7 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
             cols[2].metric("Edge", f"{analysis['edge_pct']:.0f}%")
             cols[3].metric("Qualifying (1-5c)", len(analysis["qualifying"]))
 
-            if analysis["edge"] > 0.30 and analysis["qualifying"]:
+            if analysis["edge"] > 0.05 and analysis["qualifying"]:
                 # Show qualifying brackets with trade buttons
                 st.markdown("**Qualifying Brackets:**")
                 enriched = fetch_bracket_orderbooks(analysis["qualifying"][:10])
@@ -294,7 +294,7 @@ def _scan_and_display_markets(strategy_name: str, state: StrategyState, capital:
                     if bcol4.button("Paper Trade", key=btn_key):
                         _execute_paper_trade(state, capital, event, bracket)
 
-            elif analysis["edge"] > 0.15:
+            elif analysis["edge"] > 0.02:
                 st.warning(f"Marginal edge ({analysis['edge_pct']:.0f}%). Monitor but don't trade.")
             else:
                 st.error(f"No edge ({analysis['edge_pct']:.0f}%). Bracket costs too high.")

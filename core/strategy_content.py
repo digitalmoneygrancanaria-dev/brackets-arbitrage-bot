@@ -21,7 +21,7 @@ Trump's posting cadence is more erratic than Musk's, creating higher variance bu
 cheaper tail brackets when uncertainty is high.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.70 (sum of all YES prices)
+- Only enter when total bracket cost < $0.95 (sum of all YES prices)
 - Buy 6-8 brackets covering the plausible range at 1-5 cents each
 - Use limit-order simulation (walk asks) with 10% depth cap
 - Minimum volume > $1,000 per bracket
@@ -59,7 +59,7 @@ trackable in near-real-time, providing an information advantage similar to XTrac
 for tweet counts. View velocity in the first hours after upload is highly predictive.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.70
+- Only enter when total bracket cost < $0.95
 - Focus on Day 1 and Day 6 view count brackets
 - Buy brackets spanning the likely view range based on recent video performance
 - Check YT view velocity before entering
@@ -130,7 +130,7 @@ NegRisk netting on Polymarket makes the "buy all brackets" approach viable (unli
 where spreads always sum >$1.00). Best during high-uncertainty weather patterns.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.70
+- Only enter when total bracket cost < $0.95
 - Target high-uncertainty days (cold fronts, storms, transitional seasons)
 - Focus on cities with widest temperature uncertainty in forecasts
 - Buy brackets near forecast edges where models disagree
@@ -169,7 +169,7 @@ extensive spread coverage, and tail bracket prices are ultra-cheap (0.3-0.8 cent
 Tate's posting behavior is somewhat predictable (prolific poster, 200-400+ per week).
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.70 (with 22 brackets, likely achievable)
+- Only enter when total bracket cost < $0.95 (with 22 brackets, likely achievable)
 - Buy 15-20 brackets covering the full range at 0.3-2 cents each
 - Total cost target: $0.15-$0.25 per complete set
 
@@ -207,7 +207,7 @@ possible via Friday/Saturday box office estimates (BoxOfficeMojo, The Numbers).
 Opening day numbers typically become available Saturday morning.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.70
+- Only enter when total bracket cost < $0.95
 - Focus on high-profile releases with wider bracket ranges
 - Buy brackets based on tracking/presale data + comparable movies
 - Enter before Thursday night previews
@@ -246,7 +246,7 @@ Feb 2026 due to media coverage and copycat traders. Bracket costs now sum to $0.
 on many markets, leaving only 5-20% theoretical edge.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.70 (becoming rare)
+- Only enter when total bracket cost < $0.95 (becoming rare)
 - Buy 8-15 brackets covering plausible tweet-count range
 - Target 7-day markets for more time and data
 
@@ -287,7 +287,7 @@ not algorithmic traders. Streaming velocity in the first 24-48 hours is highly p
 of final first-week numbers, giving a real-time data advantage.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.70
+- Only enter when total bracket cost < $0.95
 - Buy brackets spanning the likely sales range based on pre-release indicators
 - Check Spotify daily chart position and streaming velocity before entering
 - Focus on high-profile releases (BTS, BlackPink, Taylor Swift, Drake, etc.)
@@ -325,7 +325,7 @@ AI model training demand, new GPU launches, and supply constraints — factors m
 prediction market participants don't track. The market is small but inefficient.
 
 **Entry Rules:**
-- Only enter when total bracket cost < $0.70
+- Only enter when total bracket cost < $0.95
 - Monitor GPU rental marketplace APIs for current H100 spot prices
 - Track demand signals: new model releases, training runs, compute shortages
 - Buy brackets near current price ± expected volatility
@@ -359,8 +359,8 @@ This bot paper trades the **Annica bracket spread strategy** across 9 Polymarket
 The strategy exploits a structural mispricing in multi-bracket NegRisk markets:
 
 1. **Structure**: Markets have 5-30+ mutually exclusive brackets. Exactly ONE resolves YES ($1.00).
-2. **Entry**: Buy YES on many brackets at 1-10 cents each. Total cost should be under $0.70.
-3. **Edge**: Since one bracket MUST win ($1.00 payout), and total cost < $0.70, the spread is profitable.
+2. **Entry**: Buy YES on many brackets at 1-10 cents each. Total cost should be under $0.95.
+3. **Edge**: Since one bracket MUST win ($1.00 payout), and total cost < $0.95, the spread is profitable.
 4. **Active Management**: Sell appreciating brackets mid-period at 30-60 cents for early profit.
 
 ### Market Suitability Criteria
@@ -370,7 +370,7 @@ A market qualifies for this strategy when:
 - Quantitative/countable resolution (objective, not subjective)
 - Real-time data source for mid-period tracking
 - Recurring (weekly or more frequent)
-- Cheap tail brackets available (total spread < $0.70)
+- Cheap tail brackets available (total spread < $0.95)
 
 ### Tier 1 — Highest Expected Edge
 | # | Market | Why |
@@ -392,7 +392,7 @@ A market qualifies for this strategy when:
 ### Simulation Parameters
 - **Starting capital**: $1,000 per strategy ($9,000 total)
 - **Bet size**: 1% of equity (~$10 per trade)
-- **Entry threshold**: Total bracket cost < $0.70
+- **Entry threshold**: Total bracket cost < $0.95
 - **Take profit**: Bid > $0.30
 - **Volume filter**: > $1,000 per bracket
 """
